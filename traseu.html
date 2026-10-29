@@ -6,6 +6,8 @@
 <title>Traseu optim</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Traseu">
@@ -131,6 +133,9 @@ a.stop::after{display:none}
 .nvb>div{flex:1;min-width:0}.nvb b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.nvb span{color:var(--m);font-size:13px}
 .nvb button{border:0;border-radius:999px;padding:12px 16px;font-weight:600;background:var(--as);color:var(--t)}
 #nvs{background:var(--r)!important;color:#fff!important}
+#map3{position:absolute;inset:0;z-index:400}
+.ua{width:0;height:0;border-left:14px solid transparent;border-right:14px solid transparent;border-bottom:38px solid #007aff;filter:drop-shadow(0 3px 5px rgba(0,0,0,.45))}
+@media(prefers-color-scheme:dark){#map3 .maplibregl-canvas{filter:invert(1) hue-rotate(180deg) brightness(.85) contrast(.9)}}
 </style>
 </head>
 <body>
@@ -159,7 +164,7 @@ a.stop::after{display:none}
 </div>
 
 <div class="wrap" id="main" hidden>
-  <div class="card mapc" id="mapc"><div id="map"></div><button class="mb" id="mx">⤢</button></div>
+  <div class="card mapc" id="mapc"><div id="map"></div><div id="map3" hidden></div><button class="mb" id="mx">⤢</button></div>
   <div class="card">
     <div class="ct"><b>Alege punctele</b><span class="m" id="cnt"></span></div>
     <div class="sb"><input type="search" id="q" placeholder="Caută după denumire"></div>
@@ -187,7 +192,7 @@ a.stop::after{display:none}
 
 <div id="nv" hidden>
   <div class="nvt"><span id="nvi">↑</span><div><b id="nvd">—</b><span id="nvx"></span></div></div>
-  <div class="nvb"><div><b id="nvn"></b><span id="nvr"></span></div><button id="nvm">🔊</button><button id="nvs">Oprește</button></div>
+  <div class="nvb"><div><b id="nvn"></b><span id="nvr"></span></div><button id="n3">3D</button><button id="nvm">🔊</button><button id="nvs">Oprește</button></div>
 </div>
 
 <div id="sh">
@@ -536,7 +541,10 @@ function drawMap(m,r){
       if(b.length>1)map.fitBounds(b,{padding:[34,34]});else if(b.length)map.setView(b[0],14)},60)}
 }
 /* ---------- navigare proprie (voce + recalculare) ---------- */
-const nav={on:0,w:null,steps:[],geo:[],si:1,tgt:null,said:{},mute:0,off:0,t:0,wl:null,pos:null,busy:0};
+let m3,mk3,hd=0;
+const bear=(a,b)=>{const r=Math.PI/180,y=Math.sin((b.lon-a.lon)*r)*Math.cos(b.lat*r),x=Math.cos(a.lat*r)*Math.sin(b.lat*r)-Math.sin(a.lat*r)*Math.cos(b.lat*r)*Math.cos((b.lon-a.lon)*r);return(Math.atan2(y,x)/r+360)%360};
+const rtData=()=>({type:"Feature",geometry:{type:"LineString",coordinates:nav.geo.map(c=>[c[1],c[0]])}});
+const nav={d3:1,last:null,on:0,w:null,steps:[],geo:[],si:1,tgt:null,said:{},mute:0,off:0,t:0,wl:null,pos:null,busy:0};
 const MODT={left:"la stânga","slight left":"ușor la stânga","sharp left":"strâns la stânga",right:"la dreapta","slight right":"ușor la dreapta","sharp right":"strâns la dreapta"};
 const ARW={left:"←","slight left":"↖","sharp left":"↙",right:"→","slight right":"↗","sharp right":"↘",straight:"↑",uturn:"↩"};
 const RB=/roundabout|rotary/;
@@ -553,6 +561,22 @@ async function navLeg(a){
   if(j.code!=="Ok")throw 0;const R=j.routes[0];
   nav.geo=R.geometry.coordinates.map(c=>[c[1],c[0]]);nav.steps=R.legs[0].steps;nav.si=nav.steps.length>1?1:0;nav.said={};nav.off=0;nav.t=Date.now();
   nlay.clearLayers();um=null;L.polyline(nav.geo,{color:"#007aff",weight:7,opacity:.9}).addTo(nlay);
+  if(m3&&m3.getSource("rt"))m3.getSource("rt").setData(rtData());
+}
+function open3D(a){
+  if(typeof maplibregl==="undefined")return;
+  try{
+    $("map3").hidden=false;
+    m3=new maplibregl.Map({container:"map3",style:"https://tiles.openfreemap.org/styles/liberty",center:[a.lon,a.lat],zoom:17,pitch:62,bearing:0,attributionControl:{compact:true}});
+    m3.on("load",()=>{
+      m3.addSource("rt",{type:"geojson",data:rtData()});
+      m3.addLayer({id:"rt-c",type:"line",source:"rt",layout:{"line-join":"round","line-cap":"round"},paint:{"line-color":"#ffffff","line-width":14}});
+      m3.addLayer({id:"rt-l",type:"line",source:"rt",layout:{"line-join":"round","line-cap":"round"},paint:{"line-color":"#007aff","line-width":9}});
+      if(!m3.getStyle().layers.some(l=>l.type==="fill-extrusion")){try{m3.addLayer({id:"b3d",type:"fill-extrusion",source:"openmaptiles","source-layer":"building",minzoom:14,paint:{"fill-extrusion-color":"#d9d6cf","fill-extrusion-height":["coalesce",["get","render_height"],8],"fill-extrusion-base":["coalesce",["get","render_min_height"],0],"fill-extrusion-opacity":.85}})}catch(e){}}
+    });
+    const el=document.createElement("div");el.className="ua";
+    mk3=new maplibregl.Marker({element:el,rotationAlignment:"map",pitchAlignment:"map"}).setLngLat([a.lon,a.lat]).addTo(m3);
+  }catch(e){$("map3").hidden=true;m3=null}
 }
 function offRoute(p){let best=1e9;const k=Math.cos(p.lat*Math.PI/180);
   for(let i=0;i<nav.geo.length-1;i++){const a=nav.geo[i],b=nav.geo[i+1],ax=(a[1]-p.lon)*k,ay=a[0]-p.lat,bx=(b[1]-p.lon)*k,by=b[0]-p.lat,dx=bx-ax,dy=by-ay,l=dx*dx+dy*dy;
@@ -560,10 +584,11 @@ function offRoute(p){let best=1e9;const k=Math.cos(p.lat*Math.PI/180);
   return best}
 async function startNav(){
   const m=M();if(!m||!m.last||!m.last.route[1]||!navigator.geolocation)return;
-  nav.on=1;nav.busy=0;nav.mute=0;$("nvm").textContent="🔊";nav.tgt=m.last.route[1];nav.pos=start;
+  nav.on=1;nav.busy=0;nav.mute=0;nav.d3=1;nav.last=null;$("n3").textContent="3D";$("nvm").textContent="🔊";nav.tgt=m.last.route[1];nav.pos=start;
   $("nv").hidden=false;$("mapc").classList.add("fs");$("mx").hidden=true;$("nvd").textContent="Se calculează…";$("nvx").textContent="";$("nvn").textContent=nav.tgt.name||"Start";
   try{nav.wl=await navigator.wakeLock.request("screen")}catch(e){}
   try{await navLeg()}catch(e){$("nvd").textContent="Rută indisponibilă";$("nvx").textContent="Verifică internetul";return}
+  open3D(nav.pos||start);
   nav.w=navigator.geolocation.watchPosition(onPos,()=>{$("nvx").textContent="Semnal GPS slab"},{enableHighAccuracy:true,maximumAge:1000,timeout:20000});
   speak("Navigarea a pornit. "+instr(nav.steps[nav.si]));
 }
@@ -571,7 +596,11 @@ async function onPos(pos){
   if(!nav.on||nav.busy)return;
   const p={lat:pos.coords.latitude,lon:pos.coords.longitude};nav.pos=p;
   if(um)nlay.removeLayer(um);um=L.circleMarker([p.lat,p.lon],{radius:9,color:"#fff",weight:3,fillColor:"#007aff",fillOpacity:1}).addTo(nlay);
-  map.setView([p.lat,p.lon],Math.max(map.getZoom(),16));
+  const sp=pos.coords.speed,hh=pos.coords.heading;
+  if(nav.last&&hav(nav.last,p)>4){hd=bear(nav.last,p);nav.last=p}else if(!nav.last)nav.last=p;
+  if(hh!=null&&!isNaN(hh)&&sp>1.5)hd=hh;
+  if(m3){mk3.setLngLat([p.lon,p.lat]).setRotation(hd);m3.easeTo({center:[p.lon,p.lat],bearing:nav.d3?hd:0,pitch:nav.d3?62:0,zoom:17,offset:[0,nav.d3?170:0],duration:900,essential:true})}
+  else map.setView([p.lat,p.lon],Math.max(map.getZoom(),16));
   const m=M(),T=nav.tgt;
   if(hav(p,T)<40){
     nav.busy=1;speak("Ai ajuns la "+(T.name||"punctul de start"));setStart(p.lat,p.lon,"GPS");
@@ -589,8 +618,8 @@ async function onPos(pos){
   if(offRoute(p)>70){if(++nav.off>=3&&Date.now()-nav.t>12000){nav.busy=1;speak("Recalculez traseul");try{await navLeg(p)}catch(e){}nav.busy=0}}else nav.off=0;
 }
 function stopNav(){nav.on=0;nav.busy=0;if(nav.w!=null)navigator.geolocation.clearWatch(nav.w);nav.w=null;try{nav.wl&&nav.wl.release()}catch(e){}
-  if(nlay)nlay.clearLayers();um=null;$("nv").hidden=true;$("mapc").classList.remove("fs");$("mx").hidden=false;$("mx").textContent="⤢";setTimeout(()=>map&&map.invalidateSize(),60);try{speechSynthesis.cancel()}catch(e){}}
-$("nvs").onclick=stopNav;$("nvm").onclick=()=>{nav.mute=!nav.mute;$("nvm").textContent=nav.mute?"🔇":"🔊"};
+  if(nlay)nlay.clearLayers();um=null;if(m3){try{m3.remove()}catch(e){}m3=null;mk3=null}$("map3").hidden=true;nav.last=null;$("nv").hidden=true;$("mapc").classList.remove("fs");$("mx").hidden=false;$("mx").textContent="⤢";setTimeout(()=>map&&map.invalidateSize(),60);try{speechSynthesis.cancel()}catch(e){}}
+$("nvs").onclick=stopNav;$("n3").onclick=()=>{nav.d3=!nav.d3;$("n3").textContent=nav.d3?"3D":"2D";if(m3)m3.easeTo({pitch:nav.d3?62:0,bearing:nav.d3?hd:0,offset:[0,nav.d3?170:0],duration:600})};$("nvm").onclick=()=>{nav.mute=!nav.mute;$("nvm").textContent=nav.mute?"🔇":"🔊"};
 $("mx").onclick=()=>{const c=$("mapc").classList.toggle("fs");$("mx").textContent=c?"✕":"⤢";setTimeout(()=>map&&map.invalidateSize(),60)};
 paintNav();
 
