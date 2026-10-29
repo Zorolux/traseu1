@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Traseu optim</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Traseu">
@@ -104,6 +106,31 @@ label.big{display:inline-block;padding:16px 32px;border-radius:999px;background:
 details summary{color:var(--a);font-weight:600;font-size:14px;margin-top:10px}
 details ol{padding-left:20px;margin:8px 0 0;font-size:14px}details li{margin-bottom:6px}
 code{background:var(--as);padding:1px 6px;border-radius:7px;font-size:13px}
+.pill.on{background:var(--a);color:#fff}
+.mapc{padding:0;overflow:hidden;position:relative}
+#map{height:52vh;min-height:300px;background:var(--as)}
+.mapc.fs{position:fixed;inset:0;z-index:40;border-radius:0;margin:0}
+.mapc.fs #map{height:100%}
+.mb{position:absolute;top:10px;right:10px;z-index:500;width:42px;height:42px;border-radius:50%;border:0;background:var(--glass);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);box-shadow:var(--hl),0 2px 10px rgba(0,0,0,.2);font-size:18px}
+.mk{width:26px;height:26px;border-radius:50%;background:var(--a);color:#fff;font:700 13px/22px -apple-system,sans-serif;text-align:center;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35)}
+@media(prefers-color-scheme:dark){.leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.85) contrast(.9)}}
+.pg{height:6px;border-radius:3px;background:var(--as);overflow:hidden;margin-bottom:8px}
+.pg i{display:block;height:100%;width:0;background:var(--a);border-radius:3px;transition:width .5s}
+.row2{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.stop{padding-right:52px}
+a.stop::after{display:none}
+.ck{position:absolute;right:0;top:9px;width:40px;height:40px;border-radius:50%;border:1.5px solid rgba(120,120,128,.55);background:transparent;color:var(--m);font-size:16px;font-weight:700}
+.ck:active{background:var(--a);color:#fff;border-color:var(--a)}
+.nx b{color:var(--a)}
+#nv .nvt,#nv .nvb{position:fixed;left:12px;right:12px;z-index:60;background:var(--glass);-webkit-backdrop-filter:saturate(180%) blur(30px);backdrop-filter:saturate(180%) blur(30px);border-radius:28px;box-shadow:var(--hl),var(--sh)}
+.nvt{top:calc(env(safe-area-inset-top,0px) + 10px);display:flex;gap:14px;align-items:center;padding:14px 18px}
+#nvi{font-size:44px;line-height:1;color:var(--a);font-weight:700;width:52px;text-align:center}
+#nvd{display:block;font-size:30px;letter-spacing:-.8px}
+#nvx{display:block;color:var(--m);font-size:15px}
+.nvb{bottom:calc(10px + env(safe-area-inset-bottom,0px));display:flex;align-items:center;gap:10px;padding:12px 14px}
+.nvb>div{flex:1;min-width:0}.nvb b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.nvb span{color:var(--m);font-size:13px}
+.nvb button{border:0;border-radius:999px;padding:12px 16px;font-weight:600;background:var(--as);color:var(--t)}
+#nvs{background:var(--r)!important;color:#fff!important}
 </style>
 </head>
 <body>
@@ -132,6 +159,7 @@ code{background:var(--as);padding:1px 6px;border-radius:7px;font-size:13px}
 </div>
 
 <div class="wrap" id="main" hidden>
+  <div class="card mapc" id="mapc"><div id="map"></div><button class="mb" id="mx">⤢</button></div>
   <div class="card">
     <div class="ct"><b>Alege punctele</b><span class="m" id="cnt"></span></div>
     <div class="sb"><input type="search" id="q" placeholder="Caută după denumire"></div>
@@ -144,8 +172,10 @@ code{background:var(--as);padding:1px 6px;border-radius:7px;font-size:13px}
   </div>
 
   <div class="card" id="rc" hidden>
-    <div class="ct"><b>Traseul tău</b><span class="m">atinge o oprire → Apple Maps</span></div>
+    <div class="ct"><b>Traseul tău</b><span class="m">bifează ✓ când ai terminat</span></div>
     <div class="stats" id="stats"></div>
+    <div class="pg"><i id="pgi"></i></div>
+    <div class="row2"><span class="m" id="pgt"></span><button class="pill" id="undo">↶ Anulează ultima</button></div>
     <div class="tl" id="res"></div>
   </div>
 </div>
@@ -153,6 +183,11 @@ code{background:var(--as);padding:1px 6px;border-radius:7px;font-size:13px}
 <div id="bar" hidden>
   <div id="sum"></div>
   <div id="links"></div>
+</div>
+
+<div id="nv" hidden>
+  <div class="nvt"><span id="nvi">↑</span><div><b id="nvd">—</b><span id="nvx"></span></div></div>
+  <div class="nvb"><div><b id="nvn"></b><span id="nvr"></span></div><button id="nvm">🔊</button><button id="nvs">Oprește</button></div>
 </div>
 
 <div id="sh">
@@ -211,14 +246,14 @@ const $=id=>document.getElementById(id);
 let maps=[],cur=null,start=null,manual=false,gpsOk=null,tok=0,tm=null;
 const KEY="traseu_v2";
 const M=()=>maps.find(m=>m.id===cur);
-const newMap=(name,pts)=>({id:Date.now()+Math.random(),name,pts,sel:new Set(),q:"",rt:false,last:null});
+const newMap=(name,pts)=>({id:Date.now()+Math.random(),name,pts,done:[],sel:new Set(),q:"",rt:false,last:null});
 
 /* ---------- memorie ---------- */
 function save(){try{localStorage.setItem(KEY,JSON.stringify({cur,start,maps:maps.map(m=>({...m,sel:[...m.sel]}))}))}catch(e){}}
 function load(){
   try{
     const s=JSON.parse(localStorage.getItem(KEY)||"null");
-    if(s&&s.maps){maps=s.maps.map(m=>({...m,sel:new Set(m.sel)}));cur=s.cur;start=s.start}
+    if(s&&s.maps){maps=s.maps.map(m=>({done:[],...m,sel:new Set(m.sel)}));cur=s.cur;start=s.start}
   }catch(e){}
   if(maps.length&&!M())cur=maps[0].id;
 }
@@ -298,7 +333,7 @@ function cnt(){const m=M();$("cnt").textContent=m.sel.size+" din "+m.pts.length+
 function changed(){cnt();save();plan(700)}
 $("q").oninput=()=>{M().q=$("q").value;render()};
 $("all").onclick=()=>{const m=M();filtered(m).forEach(o=>m.sel.add(o.i));render();changed()};
-$("none").onclick=()=>{M().sel.clear();render();changed()};
+$("none").onclick=()=>{M().sel.clear();M().done=[];render();changed()};
 function setRt(m){$("rt").checked=m.rt;$("rtx").textContent=m.rt?"Activ: se întoarce la punctul de start":"Oprit: traseul se termină la ultima oprire"}
 $("rt").onchange=()=>{const m=M();m.rt=$("rt").checked;setRt(m);save();plan(200)};
 
@@ -409,14 +444,14 @@ function nearest(list,rt){
   const left=list.slice(),route=[start];let c=start,d=0;
   while(left.length){let bi=0,bd=1e18;left.forEach((p,i)=>{const x=hav(c,p);if(x<bd){bd=x;bi=i}});c=left.splice(bi,1)[0];route.push(c);d+=bd}
   if(rt){d+=hav(c,start);route.push(start)}
-  return{route,legs:route.slice(1).map((p,i)=>({distance:hav(route[i],p),duration:null})),dist:d,dur:null,approx:true};
+  return{route,legs:route.slice(1).map((p,i)=>({distance:hav(route[i],p),duration:null})),dist:d,dur:null,approx:true,geo:route.map(p=>[p.lat,p.lon])};
 }
 async function osrm(list,rt){
   const all=[start,...list],co=all.map(p=>p.lon+","+p.lat).join(";");
-  const r=await fetch("https://router.project-osrm.org/trip/v1/driving/"+co+"?source=first&roundtrip="+(rt?"true":"false")+(rt?"":"&destination=any")+"&overview=false&steps=false");
+  const r=await fetch("https://router.project-osrm.org/trip/v1/driving/"+co+"?source=first&roundtrip="+(rt?"true":"false")+(rt?"":"&destination=any")+"&overview=full&geometries=geojson&steps=false");
   const j=await r.json();if(j.code!=="Ok")throw new Error(j.code);
   const order=j.waypoints.map((w,i)=>({i,k:w.waypoint_index})).sort((a,b)=>a.k-b.k).map(o=>all[o.i]);
-  return{route:rt?[...order,start]:order,legs:j.trips[0].legs,dist:j.trips[0].distance,dur:j.trips[0].duration,approx:false};
+  return{route:rt?[...order,start]:order,legs:j.trips[0].legs,dist:j.trips[0].distance,dur:j.trips[0].duration,approx:false,geo:simp(j.trips[0].geometry.coordinates)};
 }
 function plan(d){clearTimeout(tm);tm=setTimeout(compute,d)}
 async function compute(){
@@ -426,7 +461,8 @@ async function compute(){
   await autoLoc();
   if(t!==tok)return;
   if(!start){showRoute(m,null);openSheet();return}
-  const list=[...m.sel].map(i=>m.pts[i]);let res;
+  const list=[...m.sel].filter(i=>!m.done.includes(i)).map(i=>m.pts[i]);let res;
+  if(!list.length){m.last=null;save();showRoute(m,null);$("bar").hidden=false;$("sum").innerHTML="<b>🎉 Toate opririle sunt terminate</b>";$("links").innerHTML='<button class="go s" id="rs">Resetează progresul</button>';$("rs").onclick=()=>{m.done=[];save();plan(100)};return}
   try{if(list.length>99)throw 0;res=await osrm(list,m.rt)}catch(e){res=nearest(list,m.rt)}
   if(t!==tok)return;
   m.last=res;save();if(M()===m)showRoute(m,res);
@@ -439,7 +475,7 @@ function gmUrls(route){
 }
 function showRoute(m,r){
   const res=$("res"),rc=$("rc"),bar=$("bar");res.innerHTML="";
-  if(!r){rc.hidden=true;bar.hidden=true;return}
+  if(!r){rc.hidden=true;bar.hidden=true;drawMap(m,null);return}
   rc.hidden=false;bar.hidden=false;
   const n=r.route.length-1;
   $("sum").innerHTML="<span><b>"+n+"</b> opriri</span><span><b>"+km(r.dist)+"</b></span>"+(r.dur?"<span><b>"+mn(r.dur)+"</b></span>":"")+(r.approx?'<span>≈ linie dreaptă</span>':"");
@@ -452,19 +488,111 @@ function showRoute(m,r){
   r.route.forEach((p,i)=>{
     if(i===0)return;const lg=r.legs[i-1];
     const back=start&&p.lat===start.lat&&p.lon===start.lon;
-    const a=document.createElement("a");a.className="stop";a.href="https://maps.apple.com/?dirflg=d&daddr="+p.lat+","+p.lon;a.style.setProperty("--i",Math.min(i,12));
+    const a=document.createElement("a");a.className="stop";a.href="#";a.onclick=e=>{e.preventDefault();if(map)map.setView([p.lat,p.lon],16);scrollTo({top:0,behavior:"smooth"})};a.style.setProperty("--i",Math.min(i,12));
     a.innerHTML='<div class="nd'+(back?" s":"")+'"></div><b></b><span class="m"></span>';
     a.querySelector(".nd").textContent=back?"⌂":i;
     a.querySelector("b").textContent=back?"Întoarcere la start":p.name;
     a.querySelector(".m").textContent=km(lg.distance)+(lg.duration?" · "+mn(lg.duration):"");
+    if(!back){const ck=document.createElement("button");ck.className="ck";ck.textContent="✓";ck.onclick=e=>{e.preventDefault();e.stopPropagation();markDone(m,p)};a.append(ck)}
+    if(i===1)a.classList.add("nx");
     res.append(a);
   });
+  const dn=m.done.filter(i=>m.sel.has(i)).length,tot=m.sel.size;
+  $("pgi").style.width=(tot?dn/tot*100:0)+"%";$("pgt").textContent=dn+" din "+tot+" terminate";$("undo").hidden=!m.done.length;
   const L=$("links");L.innerHTML="";
-  gmUrls(r.route).forEach((u,i,all)=>{
-    const g=document.createElement("a");g.className="go"+(i?" s":"");g.href=u;
-    g.textContent="🗺️ Deschide în Google Maps"+(all.length>1?" · partea "+(i+1)+"/"+all.length:"");L.append(g);
-  });
+  if(r.route[1]){const g=document.createElement("button");g.className="go";g.style.cssText="width:100%;border:0";g.textContent="▶ Pornește navigarea";g.onclick=startNav;L.append(g)}
+  drawMap(m,r);
 }
+
+/* ---------- hartă, navigare, progres ---------- */
+const simp=c=>{const k=Math.ceil(c.length/500);return c.filter((_,i)=>i%k===0||i===c.length-1).map(x=>[x[1],x[0]])};
+let navApp="google";try{navApp=localStorage.getItem("traseu_nav")||"google"}catch(e){}
+function navUrl(p){const ll=p.lat+","+p.lon;return navApp==="waze"?"https://waze.com/ul?ll="+ll+"&navigate=yes":navApp==="apple"?"https://maps.apple.com/?dirflg=d&daddr="+ll:"https://www.google.com/maps/dir/?api=1&travelmode=driving&destination="+ll}
+function paintNav(){document.querySelectorAll("#navp .pill").forEach(b=>b.classList.toggle("on",b.dataset.n===navApp))}
+document.querySelectorAll("#navp .pill").forEach(b=>b.onclick=()=>{navApp=b.dataset.n;try{localStorage.setItem("traseu_nav",navApp)}catch(e){}paintNav();const m=M();if(m&&m.last)showRoute(m,m.last)});
+function markDone(m,p){const i=m.pts.findIndex(q=>q.lat===p.lat&&q.lon===p.lon&&q.name===p.name);if(i>=0&&!m.done.includes(i))m.done.push(i);save();plan(150)}
+$("undo").onclick=()=>{const m=M();if(m){m.done.pop();save();plan(100)}};
+let map,lay,nlay,um,lastKey="",lastR=null;
+function drawMap(m,r){
+  if(typeof L==="undefined")return;
+  if(!map){map=L.map("map",{zoomControl:false,preferCanvas:true}).setView([45.9,25],6);L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(map);lay=L.layerGroup().addTo(map);nlay=L.layerGroup().addTo(map)}
+  lay.clearLayers();const fp=[];
+  m.pts.forEach((p,i)=>{
+    const sel=m.sel.has(i),dn=m.done.includes(i);
+    const c=L.circleMarker([p.lat,p.lon],{radius:sel?9:5,color:"#fff",weight:sel?3:1.5,fillColor:dn?"#34c759":sel?"#007aff":"#8a8a8e",fillOpacity:sel?1:.85}).addTo(lay);
+    c.bindTooltip(p.name,{direction:"top",offset:[0,-6]});
+    c.on("click",()=>{sel?m.sel.delete(i):m.sel.add(i);render();changed()});
+    fp.push([p.lat,p.lon]);
+  });
+  if(start)L.circleMarker([start.lat,start.lon],{radius:8,color:"#fff",weight:3,fillColor:"#ff9f0a",fillOpacity:1}).addTo(lay);
+  if(r){
+    L.polyline(r.geo||r.route.map(p=>[p.lat,p.lon]),{color:"#007aff",weight:5,opacity:.85}).addTo(lay);
+    r.route.forEach((p,i)=>{if(i===0||(start&&p.lat===start.lat&&p.lon===start.lon))return;
+      L.marker([p.lat,p.lon],{icon:L.divIcon({className:"",html:'<div class="mk">'+i+'</div>',iconSize:[26,26]})}).addTo(lay)});
+  }
+  const key=m.id+(r?"r":"p");
+  if(key!==lastKey||r!==lastR){lastKey=key;lastR=r;
+    setTimeout(()=>{map.invalidateSize();const b=r?r.route.map(p=>[p.lat,p.lon]):fp.slice();if(start&&r)b.push([start.lat,start.lon]);
+      if(b.length>1)map.fitBounds(b,{padding:[34,34]});else if(b.length)map.setView(b[0],14)},60)}
+}
+/* ---------- navigare proprie (voce + recalculare) ---------- */
+const nav={on:0,w:null,steps:[],geo:[],si:1,tgt:null,said:{},mute:0,off:0,t:0,wl:null,pos:null,busy:0};
+const MODT={left:"la stânga","slight left":"ușor la stânga","sharp left":"strâns la stânga",right:"la dreapta","slight right":"ușor la dreapta","sharp right":"strâns la dreapta"};
+const ARW={left:"←","slight left":"↖","sharp left":"↙",right:"→","slight right":"↗","sharp right":"↘",straight:"↑",uturn:"↩"};
+const RB=/roundabout|rotary/;
+function instr(st){const t=st.maneuver.type,d=st.maneuver.modifier,n=st.name?" pe "+st.name:"";
+  if(t==="arrive")return"Ai ajuns la destinație";if(RB.test(t))return"Intră în sensul giratoriu"+n;if(d==="uturn")return"Întoarce-te";
+  return(MODT[d]?"Virează "+MODT[d]:"Continuă înainte")+n}
+const arrow=st=>st.maneuver.type==="arrive"?"⚑":RB.test(st.maneuver.type)?"⟳":ARW[st.maneuver.modifier]||"↑";
+const dm=m=>m>=1000?(m/1000).toFixed(1)+" km":Math.round(m/10)*10+" m";
+const ml=st=>({lat:st.maneuver.location[1],lon:st.maneuver.location[0]});
+function speak(t){if(nav.mute||!window.speechSynthesis)return;const u=new SpeechSynthesisUtterance(t);u.lang="ro-RO";speechSynthesis.cancel();speechSynthesis.speak(u)}
+async function navLeg(a){
+  a=a||nav.pos||start;const b=nav.tgt;
+  const j=await(await fetch("https://router.project-osrm.org/route/v1/driving/"+a.lon+","+a.lat+";"+b.lon+","+b.lat+"?overview=full&geometries=geojson&steps=true")).json();
+  if(j.code!=="Ok")throw 0;const R=j.routes[0];
+  nav.geo=R.geometry.coordinates.map(c=>[c[1],c[0]]);nav.steps=R.legs[0].steps;nav.si=nav.steps.length>1?1:0;nav.said={};nav.off=0;nav.t=Date.now();
+  nlay.clearLayers();um=null;L.polyline(nav.geo,{color:"#007aff",weight:7,opacity:.9}).addTo(nlay);
+}
+function offRoute(p){let best=1e9;const k=Math.cos(p.lat*Math.PI/180);
+  for(let i=0;i<nav.geo.length-1;i++){const a=nav.geo[i],b=nav.geo[i+1],ax=(a[1]-p.lon)*k,ay=a[0]-p.lat,bx=(b[1]-p.lon)*k,by=b[0]-p.lat,dx=bx-ax,dy=by-ay,l=dx*dx+dy*dy;
+    let t=l?-(ax*dx+ay*dy)/l:0;t=Math.max(0,Math.min(1,t));const x=ax+t*dx,y=ay+t*dy,d=Math.sqrt(x*x+y*y)*111320;if(d<best)best=d}
+  return best}
+async function startNav(){
+  const m=M();if(!m||!m.last||!m.last.route[1]||!navigator.geolocation)return;
+  nav.on=1;nav.busy=0;nav.mute=0;$("nvm").textContent="🔊";nav.tgt=m.last.route[1];nav.pos=start;
+  $("nv").hidden=false;$("mapc").classList.add("fs");$("mx").hidden=true;$("nvd").textContent="Se calculează…";$("nvx").textContent="";$("nvn").textContent=nav.tgt.name||"Start";
+  try{nav.wl=await navigator.wakeLock.request("screen")}catch(e){}
+  try{await navLeg()}catch(e){$("nvd").textContent="Rută indisponibilă";$("nvx").textContent="Verifică internetul";return}
+  nav.w=navigator.geolocation.watchPosition(onPos,()=>{$("nvx").textContent="Semnal GPS slab"},{enableHighAccuracy:true,maximumAge:1000,timeout:20000});
+  speak("Navigarea a pornit. "+instr(nav.steps[nav.si]));
+}
+async function onPos(pos){
+  if(!nav.on||nav.busy)return;
+  const p={lat:pos.coords.latitude,lon:pos.coords.longitude};nav.pos=p;
+  if(um)nlay.removeLayer(um);um=L.circleMarker([p.lat,p.lon],{radius:9,color:"#fff",weight:3,fillColor:"#007aff",fillOpacity:1}).addTo(nlay);
+  map.setView([p.lat,p.lon],Math.max(map.getZoom(),16));
+  const m=M(),T=nav.tgt;
+  if(hav(p,T)<40){
+    nav.busy=1;speak("Ai ajuns la "+(T.name||"punctul de start"));setStart(p.lat,p.lon,"GPS");
+    if(T.name)markDone(m,T);clearTimeout(tm);await compute();
+    const n=m.last&&m.last.route[1];
+    if(!n){stopNav();speak("Toate opririle sunt terminate");return}
+    nav.tgt=n;$("nvn").textContent=n.name||"Start";try{await navLeg(p)}catch(e){}nav.busy=0;return}
+  let st=nav.steps[nav.si];
+  while(st&&nav.si<nav.steps.length-1&&hav(p,ml(st))<25){nav.si++;st=nav.steps[nav.si]}
+  if(!st)return;const d=hav(p,ml(st)),k=nav.si;
+  $("nvi").textContent=arrow(st);$("nvd").textContent=dm(d);$("nvx").textContent=instr(st);
+  if(d<250&&d>90&&!nav.said[k+"f"]){nav.said[k+"f"]=1;speak("Peste "+Math.round(d/50)*50+" de metri, "+instr(st))}
+  if(d<70&&!nav.said[k+"n"]){nav.said[k+"n"]=1;speak(instr(st))}
+  let rem=d;for(let j=k;j<nav.steps.length;j++)rem+=nav.steps[j].distance;$("nvr").textContent=dm(rem)+" până la oprire";
+  if(offRoute(p)>70){if(++nav.off>=3&&Date.now()-nav.t>12000){nav.busy=1;speak("Recalculez traseul");try{await navLeg(p)}catch(e){}nav.busy=0}}else nav.off=0;
+}
+function stopNav(){nav.on=0;nav.busy=0;if(nav.w!=null)navigator.geolocation.clearWatch(nav.w);nav.w=null;try{nav.wl&&nav.wl.release()}catch(e){}
+  if(nlay)nlay.clearLayers();um=null;$("nv").hidden=true;$("mapc").classList.remove("fs");$("mx").hidden=false;$("mx").textContent="⤢";setTimeout(()=>map&&map.invalidateSize(),60);try{speechSynthesis.cancel()}catch(e){}}
+$("nvs").onclick=stopNav;$("nvm").onclick=()=>{nav.mute=!nav.mute;$("nvm").textContent=nav.mute?"🔇":"🔊"};
+$("mx").onclick=()=>{const c=$("mapc").classList.toggle("fs");$("mx").textContent=c?"✕":"⤢";setTimeout(()=>map&&map.invalidateSize(),60)};
+paintNav();
 
 /* ---------- pornire ---------- */
 load();render();paintLoc();paintAsk();
