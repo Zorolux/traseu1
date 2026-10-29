@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Traseu optim</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Traseu">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<style>
+:root{--bg:#f2f2f7;--cs:#fff;--glass:rgba(250,250,252,.62);--t:#000;--m:#8a8a8e;--a:#007aff;--as:rgba(120,120,128,.12);--b:rgba(60,60,67,.13);--g:#34c759;--o:#ff9f0a;--r:#ff3b30;--hl:inset 0 1px 0 rgba(255,255,255,.85),inset 0 0 0 .5px rgba(255,255,255,.5);--sh:0 10px 36px rgba(0,0,0,.14)}
+@media(prefers-color-scheme:dark){:root{--bg:#000;--cs:#1c1c1e;--glass:rgba(44,44,48,.58);--t:#fff;--m:#98989f;--a:#0a84ff;--as:rgba(120,120,128,.24);--b:rgba(84,84,88,.55);--hl:inset 0 1px 0 rgba(255,255,255,.2),inset 0 0 0 .5px rgba(255,255,255,.08);--sh:0 10px 36px rgba(0,0,0,.6)}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0}
+body{font:17px/1.35 -apple-system,"SF Pro Text",system-ui,sans-serif;background:var(--bg);color:var(--t);letter-spacing:-.2px;padding-bottom:calc(170px + env(safe-area-inset-bottom,0))}
+button{font:inherit;color:inherit;transition:transform .2s cubic-bezier(.3,1.5,.5,1),opacity .15s}
+button:active,.go:active,label.big:active,.tab:active{transform:scale(.95)}
+.hid{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+@keyframes up{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
+.glass{-webkit-backdrop-filter:saturate(180%) blur(30px);backdrop-filter:saturate(180%) blur(30px)}
+
+#top{position:sticky;top:0;z-index:20;background:var(--glass);-webkit-backdrop-filter:saturate(180%) blur(30px);backdrop-filter:saturate(180%) blur(30px);padding:calc(env(safe-area-inset-top,0px) + 8px) 16px 10px;box-shadow:0 .5px 0 var(--b)}
+.hrow{display:flex;align-items:center;justify-content:space-between;gap:10px}
+h1{margin:0;font-size:32px;font-weight:700;letter-spacing:-.9px}
+.lg{display:none}
+#chip{display:flex;align-items:center;gap:7px;border:0;background:var(--glass);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);box-shadow:var(--hl),0 2px 10px rgba(0,0,0,.08);border-radius:999px;padding:9px 14px;font-size:13px;font-weight:600;max-width:55%}
+#chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dot{flex:none;width:8px;height:8px;border-radius:50%;background:var(--r)}
+.dot.g{background:var(--g)}.dot.o{background:var(--o)}
+#tabs{display:flex;gap:2px;overflow-x:auto;margin:10px 0 0;padding:3px;border-radius:999px;background:var(--as);scrollbar-width:none}
+#tabs::-webkit-scrollbar{display:none}
+.tab{flex:none;max-width:60vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:8px 16px;border-radius:999px;border:0;background:transparent;font-size:14px;font-weight:600;color:var(--t);opacity:.7}
+.tab.on{background:var(--cs);opacity:1;box-shadow:0 2px 8px rgba(0,0,0,.14),0 0 0 .5px var(--b)}
+.tab.add{color:var(--a);opacity:1}
+.tab .x{opacity:.45;margin-left:8px;font-size:11px}
+
+.wrap{padding:16px}
+.card{background:var(--cs);border-radius:26px;padding:16px;margin-bottom:16px;animation:up .45s cubic-bezier(.2,.9,.3,1) both}
+.ct{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;gap:8px}
+.ct b{font-size:20px;font-weight:700;letter-spacing:-.5px}.m{color:var(--m);font-size:13px}
+
+.sb{position:relative}
+.sb::before{content:"⌕";position:absolute;left:13px;top:50%;transform:translateY(-52%);font-size:20px;color:var(--m)}
+input[type=search],input[type=text]{width:100%;padding:11px 14px;font-size:17px;border:0;border-radius:14px;background:var(--as);color:var(--t);outline:none;-webkit-appearance:none}
+.sb input{padding-left:38px}
+.chips{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.pill{border:0;border-radius:999px;padding:8px 14px;font-size:14px;font-weight:600;background:var(--as);color:var(--a)}
+.sw{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px;padding:12px 16px;background:var(--as);border-radius:18px;font-weight:600}
+.sw small{display:block;font-weight:400;margin-top:1px}
+.sw input{appearance:none;-webkit-appearance:none;flex:none;position:relative;width:51px;height:31px;border-radius:999px;background:rgba(120,120,128,.32);margin:0;transition:.3s}
+.sw input::after{content:"";position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 3px 8px rgba(0,0,0,.3);transition:.3s cubic-bezier(.3,1.5,.5,1)}
+.sw input:checked{background:var(--a)}
+.sw input:checked::after{left:22px}
+
+#list{max-height:44vh;overflow:auto;margin:6px -4px 0;padding:0 4px}
+.it{display:flex;gap:14px;align-items:center;padding:13px 4px;box-shadow:0 .5px 0 var(--b)}
+.it:last-child{box-shadow:none}
+.it input{appearance:none;-webkit-appearance:none;flex:none;width:24px;height:24px;border-radius:50%;border:1.5px solid rgba(120,120,128,.55);display:grid;place-content:center;margin:0;transition:.2s cubic-bezier(.3,1.5,.5,1)}
+.it input:checked{background:var(--a);border-color:var(--a);transform:scale(1.08)}
+.it input:checked::after{content:"✓";color:#fff;font-size:14px;font-weight:800}
+.it.s span{font-weight:600}
+.it span{flex:1;min-width:0;overflow-wrap:anywhere}
+
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.stats div{background:var(--as);border-radius:18px;padding:12px 6px;text-align:center}
+.stats b{display:block;font-size:21px;font-weight:700;letter-spacing:-.6px}
+.stats span{font-size:12px;color:var(--m);font-weight:500}
+.tl{position:relative}
+.stop{position:relative;display:block;padding:10px 24px 10px 48px;text-decoration:none;color:var(--t);min-height:58px;animation:up .45s cubic-bezier(.2,.9,.3,1) both;animation-delay:calc(var(--i,0)*40ms)}
+.stop::before{content:"";position:absolute;left:15px;top:0;bottom:0;width:2px;background:var(--b)}
+.stop:first-child::before{top:28px}.stop:last-child::before{bottom:calc(100% - 28px)}
+.nd{position:absolute;left:2px;top:12px;width:28px;height:28px;border-radius:50%;background:var(--a);color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;z-index:1;box-shadow:0 0 0 4px var(--cs)}
+.nd.s{background:var(--t);color:var(--cs)}
+.stop b{display:block;font-weight:600;overflow-wrap:anywhere}
+.stop .m{display:block;margin-top:1px}
+a.stop::after{content:"›";position:absolute;right:2px;top:13px;color:var(--m);font-size:24px;opacity:.6}
+a.stop:active{opacity:.5}
+
+#bar{position:fixed;left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom,0px));z-index:30;background:var(--glass);-webkit-backdrop-filter:saturate(180%) blur(34px);backdrop-filter:saturate(180%) blur(34px);border-radius:34px;padding:12px;box-shadow:var(--hl),var(--sh);animation:up .4s cubic-bezier(.2,.9,.3,1) both}
+#sum{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:14px;margin:2px 10px 10px;color:var(--m)}
+#sum b{color:var(--t);font-size:16px;font-weight:700}
+.go{display:block;text-align:center;padding:16px;border-radius:999px;background:var(--a);color:#fff;text-decoration:none;font-weight:600;font-size:17px;box-shadow:0 4px 14px rgba(0,122,255,.3)}
+.go+.go{margin-top:8px}.go.s{background:var(--as);color:var(--a);padding:13px;box-shadow:none}
+
+#empty{text-align:center;padding:90px 30px;animation:up .5s both}
+#empty .big{width:104px;height:104px;margin:0 auto;border-radius:30px;background:var(--cs);display:grid;place-content:center;font-size:50px;box-shadow:var(--sh)}
+#empty h2{margin:24px 0 8px;font-size:28px;font-weight:700;letter-spacing:-.8px}
+#empty p{color:var(--m);margin:0 0 28px}
+label.big{display:inline-block;padding:16px 32px;border-radius:999px;background:var(--a);color:#fff;font-weight:600}
+
+#sh{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.32);opacity:0;pointer-events:none;transition:.3s}
+#sh.on{opacity:1;pointer-events:auto}
+#sp{position:absolute;left:8px;right:8px;bottom:8px;max-height:90vh;overflow:auto;background:var(--glass);-webkit-backdrop-filter:saturate(180%) blur(40px);backdrop-filter:saturate(180%) blur(40px);border-radius:38px;padding:10px 16px calc(20px + env(safe-area-inset-bottom,0px));box-shadow:var(--hl),var(--sh);transform:translateY(110%);transition:.4s cubic-bezier(.2,.9,.25,1)}
+#sh.on #sp{transform:none}
+.grab{width:38px;height:5px;border-radius:3px;background:var(--m);opacity:.4;margin:0 auto 14px}
+#sp h2{margin:0 0 4px;font-size:24px;font-weight:700;letter-spacing:-.6px}
+.opt{background:var(--cs);border-radius:24px;padding:16px;margin-top:12px}
+.opt h3{margin:0 0 5px;font-size:16px;font-weight:600}
+.btn{width:100%;border:0;border-radius:999px;padding:14px;font-weight:600;background:var(--a);color:#fff;margin-top:10px}
+.btn.l{background:var(--as);color:var(--a)}
+.msg{font-size:13px;margin-top:9px;color:var(--m)}.msg.ok{color:var(--g)}.msg.er{color:var(--r)}
+.res div{padding:12px 4px;box-shadow:0 .5px 0 var(--b)}.res div:last-child{box-shadow:none}
+details summary{color:var(--a);font-weight:600;font-size:14px;margin-top:10px}
+details ol{padding-left:20px;margin:8px 0 0;font-size:14px}details li{margin-bottom:6px}
+code{background:var(--as);padding:1px 6px;border-radius:7px;font-size:13px}
+</style>
+</head>
+<body>
+<input type="file" id="f" class="hid" accept=".kmz,.kml,application/vnd.google-earth.kmz,application/vnd.google-earth.kml+xml" multiple>
+
+<div id="top">
+  <div class="hrow">
+    <h1><span class="lg">🧭</span><span class="tt">Traseu optim</span></h1>
+    <button id="chip"><i class="dot" id="dot"></i><span id="ls">Setează locația</span></button>
+  </div>
+  <div id="tabs"></div>
+</div>
+
+<div id="ask" class="card" hidden style="margin:16px 16px 0">
+  <div class="ct"><b>📍 Permite locația</b></div>
+  <div id="at" class="m" style="font-size:14px;color:var(--t)"></div>
+  <button class="btn" id="ay">Da, permite locația</button>
+  <button class="btn l" id="an">Alte metode</button>
+</div>
+
+<div id="empty">
+  <div class="big">🗺️</div>
+  <h2>Începe cu o hartă</h2>
+  <p>Încarcă un fișier KMZ sau KML.<br>Fiecare hartă apare ca tab.</p>
+  <label class="big" for="f">＋ Adaugă hartă</label>
+</div>
+
+<div class="wrap" id="main" hidden>
+  <div class="card">
+    <div class="ct"><b>Alege punctele</b><span class="m" id="cnt"></span></div>
+    <div class="sb"><input type="search" id="q" placeholder="Caută după denumire"></div>
+    <div class="chips">
+      <button class="pill" id="all">Bifează rezultatele</button>
+      <button class="pill" id="none">Șterge selecția</button>
+    </div>
+    <label class="sw"><span>↩︎ Retur la start<small class="m" id="rtx">Traseu dus-întors</small></span><input type="checkbox" id="rt"></label>
+    <div id="list"></div>
+  </div>
+
+  <div class="card" id="rc" hidden>
+    <div class="ct"><b>Traseul tău</b><span class="m">atinge o oprire → Apple Maps</span></div>
+    <div class="stats" id="stats"></div>
+    <div class="tl" id="res"></div>
+  </div>
+</div>
+
+<div id="bar" hidden>
+  <div id="sum"></div>
+  <div id="links"></div>
+</div>
+
+<div id="sh">
+  <div id="sp">
+    <div class="grab"></div>
+    <h2>Locația ta de start</h2>
+    <div class="m" id="cur">—</div>
+
+    <div class="opt">
+      <h3>1 · GPS exact</h3>
+      <div class="m">Cere locația iPhone-ului prin Documents. Verifică în <b>Setări → Confidențialitate și securitate → Servicii de localizare → Documents</b> să fie „În timpul utilizării”. Dacă Documents nu apare în listă, iOS nu-i permite paginii să primească locația.</div>
+      <button class="btn l" id="gps">📍 Încearcă GPS</button>
+      <button class="btn l" id="ipb">≈ Aproximativ, după IP (oraș)</button>
+      <div class="msg" id="gm"></div>
+    </div>
+
+    <div class="opt">
+      <h3>2 · Lipește locația exactă</h3>
+      <div class="m">Coordonate (<code>44.4268, 26.1025</code>) sau link din Apple Maps / Google Maps.</div>
+      <input type="text" id="pi" placeholder="Lipește aici" style="margin-top:8px" autocomplete="off" autocapitalize="off">
+      <button class="btn" id="pb">📋 Lipește din clipboard</button>
+      <div class="msg" id="pm"></div>
+      <details><summary>⚡ Cum obții coordonatele dintr-o atingere (Scurtătură iOS)</summary>
+        <ol>
+          <li>Deschide aplicația <b>Scurtături</b> → <b>＋</b>.</li>
+          <li>Adaugă <b>Obține locația curentă</b>.</li>
+          <li>Adaugă <b>Text</b>. Scrie în el variabila <i>Locație curentă</i> → atinge-o și alege <b>Latitudine</b>, apoi o virgulă, apoi din nou <i>Locație curentă</i> → <b>Longitudine</b>.</li>
+          <li>Adaugă <b>Copiază în clipboard</b>.</li>
+          <li>Numește-o „Locația mea”, apoi „Adaugă pe ecranul principal”.</li>
+          <li>Când ai nevoie: atingi scurtătura, revii aici și apeși <b>Lipește din clipboard</b>.</li>
+        </ol>
+        <div class="m" style="margin-top:6px">Alternativ, în Apple Maps atinge punctul albastru → Partajează locația mea → Copiază.</div>
+      </details>
+    </div>
+
+    <div class="opt">
+      <h3>3 · Folosește un punct din hartă</h3>
+      <div class="m">Util dacă pleci de la un loc deja marcat (birou, depozit, acasă).</div>
+      <input type="search" id="ps" placeholder="Caută punctul de start" style="margin-top:8px">
+      <div class="res" id="pr"></div>
+    </div>
+
+    <div class="opt">
+      <h3>4 · Diagnostic</h3>
+      <div class="m">Arată ce permite Documents acestei pagini.</div>
+      <button class="btn l" id="dgb">🔎 Rulează diagnosticul</button>
+      <div class="msg" id="dg" style="white-space:pre-wrap"></div>
+    </div>
+
+    <button class="btn l" id="close" style="margin-top:14px">Închide</button>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+let maps=[],cur=null,start=null,manual=false,gpsOk=null,tok=0,tm=null;
+const KEY="traseu_v2";
+const M=()=>maps.find(m=>m.id===cur);
+const newMap=(name,pts)=>({id:Date.now()+Math.random(),name,pts,sel:new Set(),q:"",rt:false,last:null});
+
+/* ---------- memorie ---------- */
+function save(){try{localStorage.setItem(KEY,JSON.stringify({cur,start,maps:maps.map(m=>({...m,sel:[...m.sel]}))}))}catch(e){}}
+function load(){
+  try{
+    const s=JSON.parse(localStorage.getItem(KEY)||"null");
+    if(s&&s.maps){maps=s.maps.map(m=>({...m,sel:new Set(m.sel)}));cur=s.cur;start=s.start}
+  }catch(e){}
+  if(maps.length&&!M())cur=maps[0].id;
+}
+
+/* ---------- ZIP / KML ---------- */
+async function readKmz(buf){
+  const d=new DataView(buf),u=new Uint8Array(buf);let e=-1;
+  for(let i=buf.byteLength-22;i>=0;i--){if(d.getUint32(i,true)===0x06054b50){e=i;break}}
+  if(e<0)throw new Error("ZIP invalid");
+  const n=d.getUint16(e+10,true);let p=d.getUint32(e+16,true),best=null;
+  for(let k=0;k<n;k++){
+    if(d.getUint32(p,true)!==0x02014b50)break;
+    const meth=d.getUint16(p+10,true),cs=d.getUint32(p+20,true),nl=d.getUint16(p+28,true),el=d.getUint16(p+30,true),cl=d.getUint16(p+32,true),lo=d.getUint32(p+42,true);
+    const name=new TextDecoder().decode(u.subarray(p+46,p+46+nl));
+    if(/\.kml$/i.test(name)&&(!best||/(^|\/)doc\.kml$/i.test(name)))best={meth,cs,lo};
+    p+=46+nl+el+cl;
+  }
+  if(!best)throw new Error("Nu e .kml în KMZ");
+  const ln=d.getUint16(best.lo+26,true),le=d.getUint16(best.lo+28,true),s=best.lo+30+ln+le,raw=u.slice(s,s+best.cs);
+  if(best.meth===0)return new TextDecoder().decode(raw);
+  return await new Response(new Blob([raw]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).text();
+}
+function parseKml(txt){
+  const x=new DOMParser().parseFromString(txt,"text/xml"),out=[];
+  x.querySelectorAll("Placemark").forEach(pm=>{
+    const c=pm.querySelector("coordinates");if(!c)return;
+    const f=c.textContent.trim().split(/\s+/)[0].split(","),lon=parseFloat(f[0]),lat=parseFloat(f[1]);
+    if(isNaN(lat)||isNaN(lon))return;
+    out.push({name:(pm.querySelector("name")?.textContent||"(fără nume)").trim(),lat,lon});
+  });
+  return out;
+}
+$("f").onchange=async ev=>{
+  for(const f of ev.target.files){
+    try{
+      const buf=await f.arrayBuffer();
+      const txt=/\.kmz$/i.test(f.name)?await readKmz(buf):new TextDecoder().decode(buf);
+      const pts=parseKml(txt);
+      if(!pts.length){alert(f.name+": nu am găsit puncte");continue}
+      const m=newMap(f.name.replace(/\.(kmz|kml)$/i,""),pts);maps.push(m);cur=m.id;
+    }catch(e){alert(f.name+": "+e.message)}
+  }
+  ev.target.value="";save();render();
+};
+
+/* ---------- interfață ---------- */
+function renderTabs(){
+  const t=$("tabs");t.innerHTML="";
+  maps.forEach(m=>{
+    const b=document.createElement("button");b.className="tab"+(m.id===cur?" on":"");b.textContent=m.name;
+    b.onclick=()=>{if(cur===m.id)return;cur=m.id;save();render();plan(300)};
+    if(m.id===cur){const x=document.createElement("span");x.className="x";x.textContent="✕";
+      x.onclick=e=>{e.stopPropagation();if(confirm("Închid harta „"+m.name+"”?")){maps=maps.filter(k=>k!==m);cur=maps.length?maps[0].id:null;save();render()}};
+      b.append(x)}
+    t.append(b);
+  });
+  const a=document.createElement("label");a.className="tab add";a.htmlFor="f";a.textContent="＋ Hartă";t.append(a);
+}
+const norm=s=>s.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
+function filtered(m,q){q=norm((q??m.q).trim());return m.pts.map((p,i)=>({p,i})).filter(o=>!q||norm(o.p.name).includes(q))}
+function render(){
+  renderTabs();
+  const m=M();$("empty").hidden=!!m;$("main").hidden=!m;
+  if(!m){$("bar").hidden=true;return}
+  $("q").value=m.q;setRt(m);
+  const l=$("list");l.innerHTML="";const fl=filtered(m);
+  fl.slice(0,500).forEach(({p,i})=>{
+    const r=document.createElement("label");r.className="it"+(m.sel.has(i)?" s":"");
+    const cb=document.createElement("input");cb.type="checkbox";cb.checked=m.sel.has(i);
+    cb.onchange=()=>{cb.checked?m.sel.add(i):m.sel.delete(i);r.classList.toggle("s",cb.checked);changed()};
+    const s=document.createElement("span");s.textContent=p.name;r.append(cb,s);l.append(r);
+  });
+  if(!fl.length)l.innerHTML='<div class="m" style="padding:14px 6px">Niciun punct găsit.</div>';
+  cnt();showRoute(m,m.last);
+}
+function cnt(){const m=M();$("cnt").textContent=m.sel.size+" din "+m.pts.length+" selectate"}
+function changed(){cnt();save();plan(700)}
+$("q").oninput=()=>{M().q=$("q").value;render()};
+$("all").onclick=()=>{const m=M();filtered(m).forEach(o=>m.sel.add(o.i));render();changed()};
+$("none").onclick=()=>{M().sel.clear();render();changed()};
+function setRt(m){$("rt").checked=m.rt;$("rtx").textContent=m.rt?"Activ: se întoarce la punctul de start":"Oprit: traseul se termină la ultima oprire"}
+$("rt").onchange=()=>{const m=M();m.rt=$("rt").checked;setRt(m);save();plan(200)};
+
+/* ---------- locație ---------- */
+function parseCoords(s){
+  s=s||"";try{s=decodeURIComponent(s)}catch(e){}
+  const ok=(a,b)=>Math.abs(a)<=90&&Math.abs(b)<=180&&!(a===0&&b===0);
+  const R=[/[?&](?:ll|sll|q|coordinate|daddr|saddr|center)=(-?\d+(?:\.\d+)?)[,\s+]+(-?\d+(?:\.\d+)?)/i,/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/,/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/];
+  for(const r of R){const m=s.match(r);if(m&&ok(+m[1],+m[2]))return{lat:+m[1],lon:+m[2]}}
+  const m=s.match(/(-?\d{1,3}\.\d+)\s*°?\s*([NS])?[\s,;]+(-?\d{1,3}\.\d+)\s*°?\s*([EW])?/i);
+  if(m){let a=+m[1],b=+m[3];if(/s/i.test(m[2]||""))a=-Math.abs(a);if(/w/i.test(m[4]||""))b=-Math.abs(b);if(ok(a,b))return{lat:a,lon:b}}
+  return null;
+}
+function ago(t){const s=(Date.now()-t)/1000;return s<60?"acum":s<3600?Math.round(s/60)+" min":s<86400?Math.round(s/3600)+" h":"zile"}
+function setStart(lat,lon,src,t){start={lat,lon,src,t:t||Date.now()};save();paintLoc();paintAsk()}
+function paintLoc(){
+  const d=$("dot"),l=$("ls");
+  if(!start){d.className="dot";l.textContent="Setează locația";$("cur").textContent="Nicio locație setată.";return}
+  const age=(Date.now()-start.t)/60000;
+  d.className="dot "+(start.src.startsWith("≈")?"o":age<30?"g":"o");
+  l.textContent=start.src+" · "+(age<1?"acum":ago(start.t));
+  $("cur").textContent=start.src+" — "+start.lat.toFixed(5)+", "+start.lon.toFixed(5)+" ("+(age<1?"acum":"acum "+ago(start.t))+")"+(age>=30?" ⚠️ locație veche":"");
+}
+setInterval(()=>{paintLoc();paintAsk()},30000);
+let consent=false;try{consent=localStorage.getItem("traseu_consent")==="1"}catch(e){}
+function setConsent(){consent=true;try{localStorage.setItem("traseu_consent","1")}catch(e){}}
+async function permState(){try{return(await navigator.permissions.query({name:"geolocation"})).state}catch(e){return"unknown"}}
+async function paintAsk(){
+  const st=await permState(),fresh=start&&start.src==="GPS"&&Date.now()-start.t<30*60000;
+  if(st==="granted"||fresh){$("ask").hidden=true;return}
+  $("ask").hidden=false;
+  if(st==="denied"){
+    $("at").textContent="Locația este blocată pentru această pagină (permisiune: refuzată). Pagina rulează într-un cadru al aplicației Documents, care nu o lasă să ceară acces, iar din aplicație nu pot schimba asta. Folosește „Alte metode”.";
+    $("ay").textContent="Încearcă totuși";
+  }else{
+    $("at").textContent="Aplicația are nevoie de locația ta ca să calculeze traseul din punctul în care ești. Apasă „Da” și acceptă fereastra iOS. Alegerea rămâne salvată și la următoarele deschideri.";
+    $("ay").textContent="Da, permite locația";
+  }
+}
+$("ay").onclick=async()=>{manual=false;gpsOk=null;const ok=await getLoc(false);paintAsk();if(ok&&M()&&M().sel.size)plan(100);else if(!ok)$("at").textContent+=" — "+$("gm").textContent};
+$("an").onclick=openSheet;
+function getLoc(quiet){
+  return new Promise(res=>{
+    if(!navigator.geolocation){gpsOk=false;$("gm").className="msg er";$("gm").textContent="Acest context nu oferă GPS. Folosește opțiunea 2 sau 3.";return res(false)}
+    if(!quiet){setConsent();$("gm").className="msg";$("gm").textContent="Se caută locația…"}
+    navigator.geolocation.getCurrentPosition(
+      p=>{gpsOk=true;manual=false;setStart(p.coords.latitude,p.coords.longitude,"GPS");$("gm").className="msg ok";$("gm").textContent="Locație GPS găsită (±"+Math.round(p.coords.accuracy)+" m).";res(true)},
+      er=>{gpsOk=false;setTimeout(paintAsk,50);$("gm").className="msg er";
+        $("gm").textContent=er.code===1?"Locația e refuzată pentru Documents sau pagină. Vezi Setări iPhone → Servicii de localizare → Documents.":er.code===3?"GPS-ul nu a răspuns la timp. Încearcă din nou, în aer liber.":"Poziția nu e disponibilă acum.";res(false)},
+      {enableHighAccuracy:true,timeout:12000,maximumAge:20000});
+  });
+}
+/* ultima soluție automată: locație aproximativă după IP */
+async function ipLoc(){
+  const U=[["https://ipwho.is/",j=>j.success!==false&&[j.latitude,j.longitude,j.city]],["https://ipapi.co/json/",j=>j.latitude&&[j.latitude,j.longitude,j.city]]];
+  for(const [u,f] of U){
+    try{
+      const c=new AbortController();setTimeout(()=>c.abort(),6000);
+      const j=await (await fetch(u,{signal:c.signal})).json(),v=f(j);
+      if(v){setStart(+v[0],+v[1],"≈ IP"+(v[2]?" ("+v[2]+")":""));return true}
+    }catch(e){}
+  }
+  return false;
+}
+async function autoLoc(){
+  let ok=false;
+  if(!manual&&gpsOk!==false&&consent)ok=await getLoc(true);
+  if(!ok&&!manual&&(!start||start.src.startsWith("≈")||Date.now()-start.t>2*3600e3))ok=await ipLoc();
+  return ok;
+}
+function openSheet(){paintLoc();$("sh").classList.add("on")}
+function closeSheet(){$("sh").classList.remove("on")}
+$("chip").onclick=()=>{openSheet();manual=false;gpsOk=null;getLoc(false).then(ok=>{if(ok){setTimeout(closeSheet,700);plan(100)}})};$("close").onclick=closeSheet;
+$("sh").onclick=e=>{if(e.target===$("sh"))closeSheet()};
+$("gps").onclick=async()=>{manual=false;gpsOk=null;if(await getLoc(false)){setTimeout(closeSheet,700);plan(100)}};
+
+$("ipb").onclick=async()=>{$("gm").className="msg";$("gm").textContent="Se caută…";if(await ipLoc()){$("gm").className="msg ok";$("gm").textContent="Locație aproximativă setată (poate fi greșită cu km).";manual=false;plan(100)}else{$("gm").className="msg er";$("gm").textContent="Nu am reușit (fără internet?)."}};
+$("dgb").onclick=async()=>{
+  const o=["Fișier: "+location.protocol+"//…/"+(location.pathname.split("/").pop()||""),"Context sigur (HTTPS): "+(window.isSecureContext?"da":"nu"),"API GPS: "+(navigator.geolocation?"da":"nu"),"Internet: "+(navigator.onLine?"da":"nu")];
+  try{const p=await navigator.permissions.query({name:"geolocation"});o.push("Permisiune GPS: "+p.state)}catch(e){o.push("Permisiune GPS: necunoscută")}
+  $("dg").textContent=o.join("\n");
+};
+function applyPaste(t){
+  const c=parseCoords(t);
+  if(c){manual=true;setStart(c.lat,c.lon,"Manual");$("pm").className="msg ok";$("pm").textContent="✓ Locație setată: "+c.lat.toFixed(5)+", "+c.lon.toFixed(5);setTimeout(closeSheet,700);plan(100)}
+  else if(t.trim()){$("pm").className="msg er";$("pm").textContent=/goo\.gl|maps\.app/i.test(t)?"Linkurile scurte Google nu conțin coordonate. Folosește Scurtătura sau un link Apple Maps.":"Nu am găsit coordonate în text."}
+}
+$("pb").onclick=async()=>{
+  try{const t=await navigator.clipboard.readText();$("pi").value=t;applyPaste(t)}
+  catch(e){$("pi").focus();$("pm").className="msg";$("pm").textContent="Atinge câmpul de mai sus și alege „Lipește”."}
+};
+$("pi").onpaste=()=>setTimeout(()=>applyPaste($("pi").value),50);
+$("pi").onchange=()=>applyPaste($("pi").value);
+$("ps").oninput=()=>{
+  const m=M(),r=$("pr");r.innerHTML="";if(!m||!$("ps").value.trim())return;
+  filtered(m,$("ps").value).slice(0,6).forEach(({p})=>{
+    const d=document.createElement("div");d.textContent="📌 "+p.name;
+    d.onclick=()=>{manual=true;setStart(p.lat,p.lon,"Punct: "+p.name);closeSheet();plan(100)};r.append(d);
+  });
+};
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&M()&&M().sel.size)plan(200)});
+
+/* ---------- rutare ---------- */
+const hav=(a,b)=>{const R=6371e3,r=Math.PI/180,dl=(b.lat-a.lat)*r,dn=(b.lon-a.lon)*r;const h=Math.sin(dl/2)**2+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.sqrt(h))};
+const km=m=>(m/1000).toFixed(1)+" km";
+const mn=s=>{const x=Math.round(s/60);return x>=60?Math.floor(x/60)+" h "+(x%60)+" min":x+" min"};
+function nearest(list,rt){
+  const left=list.slice(),route=[start];let c=start,d=0;
+  while(left.length){let bi=0,bd=1e18;left.forEach((p,i)=>{const x=hav(c,p);if(x<bd){bd=x;bi=i}});c=left.splice(bi,1)[0];route.push(c);d+=bd}
+  if(rt){d+=hav(c,start);route.push(start)}
+  return{route,legs:route.slice(1).map((p,i)=>({distance:hav(route[i],p),duration:null})),dist:d,dur:null,approx:true};
+}
+async function osrm(list,rt){
+  const all=[start,...list],co=all.map(p=>p.lon+","+p.lat).join(";");
+  const r=await fetch("https://router.project-osrm.org/trip/v1/driving/"+co+"?source=first&roundtrip="+(rt?"true":"false")+(rt?"":"&destination=any")+"&overview=false&steps=false");
+  const j=await r.json();if(j.code!=="Ok")throw new Error(j.code);
+  const order=j.waypoints.map((w,i)=>({i,k:w.waypoint_index})).sort((a,b)=>a.k-b.k).map(o=>all[o.i]);
+  return{route:rt?[...order,start]:order,legs:j.trips[0].legs,dist:j.trips[0].distance,dur:j.trips[0].duration,approx:false};
+}
+function plan(d){clearTimeout(tm);tm=setTimeout(compute,d)}
+async function compute(){
+  const m=M();if(!m)return;const t=++tok;
+  if(!m.sel.size){m.last=null;save();showRoute(m,null);return}
+  $("bar").hidden=false;$("sum").innerHTML="<b>⏳ Se calculează traseul…</b>";$("links").innerHTML="";
+  await autoLoc();
+  if(t!==tok)return;
+  if(!start){showRoute(m,null);openSheet();return}
+  const list=[...m.sel].map(i=>m.pts[i]);let res;
+  try{if(list.length>99)throw 0;res=await osrm(list,m.rt)}catch(e){res=nearest(list,m.rt)}
+  if(t!==tok)return;
+  m.last=res;save();if(M()===m)showRoute(m,res);
+}
+function gmUrls(route){
+  const pr=route.map(p=>p.lat+","+p.lon),u=[];let s=0;
+  while(s<pr.length-1){const e=Math.min(s+10,pr.length-1),wp=pr.slice(s+1,e).join("|");
+    u.push("https://www.google.com/maps/dir/?api=1&travelmode=driving&origin="+pr[s]+"&destination="+pr[e]+(wp?"&waypoints="+encodeURIComponent(wp):""));s=e}
+  return u;
+}
+function showRoute(m,r){
+  const res=$("res"),rc=$("rc"),bar=$("bar");res.innerHTML="";
+  if(!r){rc.hidden=true;bar.hidden=true;return}
+  rc.hidden=false;bar.hidden=false;
+  const n=r.route.length-1;
+  $("sum").innerHTML="<span><b>"+n+"</b> opriri</span><span><b>"+km(r.dist)+"</b></span>"+(r.dur?"<span><b>"+mn(r.dur)+"</b></span>":"")+(r.approx?'<span>≈ linie dreaptă</span>':"");
+  $("stats").innerHTML="<div><b>"+n+"</b><span>opriri</span></div><div><b>"+km(r.dist)+"</b><span>distanță</span></div><div><b>"+(r.dur?mn(r.dur):"—")+"</b><span>durată</span></div>";
+  const first=r.route[0];
+  const s0=document.createElement("div");s0.className="stop";s0.style.minHeight="48px";s0.style.cursor="default";
+  s0.innerHTML='<div class="nd s">★</div><b>Start</b><span class="m"></span>';
+  s0.querySelector(".m").textContent=start?start.src:"";
+  s0.style.setProperty("--x","0");res.append(s0);
+  r.route.forEach((p,i)=>{
+    if(i===0)return;const lg=r.legs[i-1];
+    const back=start&&p.lat===start.lat&&p.lon===start.lon;
+    const a=document.createElement("a");a.className="stop";a.href="https://maps.apple.com/?dirflg=d&daddr="+p.lat+","+p.lon;a.style.setProperty("--i",Math.min(i,12));
+    a.innerHTML='<div class="nd'+(back?" s":"")+'"></div><b></b><span class="m"></span>';
+    a.querySelector(".nd").textContent=back?"⌂":i;
+    a.querySelector("b").textContent=back?"Întoarcere la start":p.name;
+    a.querySelector(".m").textContent=km(lg.distance)+(lg.duration?" · "+mn(lg.duration):"");
+    res.append(a);
+  });
+  const L=$("links");L.innerHTML="";
+  gmUrls(r.route).forEach((u,i,all)=>{
+    const g=document.createElement("a");g.className="go"+(i?" s":"");g.href=u;
+    g.textContent="🗺️ Deschide în Google Maps"+(all.length>1?" · partea "+(i+1)+"/"+all.length:"");L.append(g);
+  });
+}
+
+/* ---------- pornire ---------- */
+load();render();paintLoc();paintAsk();
+let retried=false;
+document.addEventListener("pointerdown",()=>{if(!retried&&gpsOk===false&&!manual){retried=true;getLoc(true).then(ok=>{if(ok&&M()&&M().sel.size)plan(100)})}},{passive:true});
+autoLoc().then(()=>{if(M()&&M().sel.size)plan(100)});
+</script>
+</body>
+</html>
