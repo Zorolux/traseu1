@@ -178,13 +178,16 @@ h1{font-size:28px}
 .pca{display:flex;gap:8px;flex-wrap:wrap}
 .pca .btn{flex:1 1 40%;width:auto;margin-top:12px;text-align:center;text-decoration:none;display:block}
 .pca .btn[hidden]{display:none}
+#rb{position:fixed;right:14px;z-index:30;display:flex;flex-direction:column;gap:12px;bottom:300px}
+#rb .mb{position:static;width:48px;height:48px;display:grid;place-content:center;font-size:17px;font-weight:700}
+#rb .mb[hidden]{display:none}
 </style>
 </head>
 <body>
 <input type="file" id="f" class="hid" accept=".kmz,.kml,application/vnd.google-earth.kmz,application/vnd.google-earth.kml+xml" multiple>
 
   <div class="mapc" id="mapc" hidden><div id="map"></div><button class="mb" id="mx">⤢</button></div>
-<button class="mb" id="fab" hidden>📍</button><button class="mb" id="f3" hidden>3D</button>
+<div id="rb"><button class="mb" id="f4" hidden>🛰</button><button class="mb" id="f3" hidden>3D</button><button class="mb" id="fab" hidden>📍</button></div>
 <div id="top">
   <div class="hrow">
     <h1><span class="lg">🧭</span><span class="tt">Traseu optim</span></h1>
@@ -397,7 +400,7 @@ const norm=s=>s.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
 function filtered(m,q){q=norm((q??m.q).trim());return m.pts.map((p,i)=>({p,i})).filter(o=>!q||norm(o.p.name).includes(q))}
 function render(){
   renderTabs();
-  const m=M();$("empty").hidden=!!m;$("main").hidden=!m;$("sheet").hidden=!m||!!nav.on;$("mapc").hidden=!m;$("fab").hidden=!m||!!nav.on;$("f3").hidden=!m||!!nav.on;
+  const m=M();$("empty").hidden=!!m;$("main").hidden=!m;$("sheet").hidden=!m||!!nav.on;$("mapc").hidden=!m;$("fab").hidden=!m||!!nav.on;$("f4").hidden=$("f3").hidden=!m||!!nav.on;
   if(!m){$("bar").hidden=true;return}
   $("q").value=m.q;setRt(m);
   const l=$("list");l.innerHTML="";const fl=filtered(m);
@@ -643,9 +646,23 @@ function recolor(){
     }
   });
 }
+function applyEarth(){
+  try{
+    gm.addSource("sat",{type:"raster",tiles:["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],tileSize:256,maxzoom:19,attribution:"Imagini © Esri, Maxar, Earthstar Geographics"});
+    gm.addSource("dem",{type:"raster-dem",tiles:["https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"],tileSize:256,maxzoom:14,encoding:"terrarium"});
+    const L0=gm.getStyle().layers,mine=/^(rt|nrt|ndone|pts|cl|sel|stops|me)-/,first=L0.find(l=>l.type!=="background");
+    gm.addLayer({id:"sat-r",type:"raster",source:"sat"},first&&first.id);
+    L0.forEach(l=>{
+      if(mine.test(l.id)||l.id==="sat-r"||l.type==="background")return;
+      if(l.type==="symbol"){try{gm.setPaintProperty(l.id,"text-color","#ffffff");gm.setPaintProperty(l.id,"text-halo-color","rgba(0,0,0,.7)");gm.setPaintProperty(l.id,"text-halo-width",1.4)}catch(e){}}
+      else{try{gm.setLayoutProperty(l.id,"visibility","none")}catch(e){}}
+    });
+    gm.setTerrain({source:"dem",exaggeration:1.15});
+  }catch(e){}
+}
 function applyMapStyle(){
-  document.documentElement.dataset.ms=cfg.map;
-  if(!gm||!gmReady)return;
+  document.documentElement.dataset.ms=cfg.earth==="1"?"earth":cfg.map;
+  if(!gm||!gmReady||cfg.earth==="1")return;
   if(cfg.map==="classic"){if(recolored){recolored=false;gmReady=false;gm.setStyle(STYLE)}}
   else{recolor();recolored=true}
 }
@@ -664,7 +681,7 @@ function initMap(){
       const NC=["!",["has","point_count"]];
       gm.addLayer({id:"cl-c",type:"circle",source:"pts",filter:["has","point_count"],paint:{"circle-color":"#8e8e93","circle-opacity":.92,"circle-radius":["step",["get","point_count"],16,10,20,50,25],"circle-stroke-color":"#ffffff","circle-stroke-width":2.5}});
       gm.addLayer({id:"cl-n",type:"symbol",source:"pts",filter:["has","point_count"],layout:{"text-field":["get","point_count_abbreviated"],"text-font":ff,"text-size":13,"text-allow-overlap":true},paint:{"text-color":"#ffffff"}});
-      gm.addLayer({id:"pts-h",type:"circle",source:"pts",filter:NC,paint:{"circle-radius":20,"circle-opacity":.01}});
+      gm.addLayer({id:"pts-h",type:"circle",source:"pts",filter:NC,paint:{"circle-radius":20,"circle-opacity":0,"circle-stroke-opacity":0}});
       gm.addLayer({id:"pts-c",type:"circle",source:"pts",filter:NC,paint:{"circle-radius":["interpolate",["linear"],["zoom"],6,3,16,7],"circle-color":"#8e8e93","circle-stroke-color":"#ffffff","circle-stroke-width":2}});
       gm.addLayer({id:"pts-l",type:"symbol",source:"pts",filter:NC,minzoom:13,layout:{"text-field":["get","n"],"text-font":ff,"text-size":12,"text-anchor":"top","text-offset":[0,1.1],"text-optional":true,"text-max-width":9},paint:{"text-color":"#1c1c1e","text-halo-color":"#ffffff","text-halo-width":1.6}});
       gm.addLayer({id:"sel-c",type:"circle",source:"sel",paint:{"circle-radius":["interpolate",["linear"],["zoom"],6,7,16,13],"circle-color":["case",["==",["get","d"],1],"#34c759","#007aff"],"circle-stroke-color":"#ffffff","circle-stroke-width":3}});
@@ -672,7 +689,7 @@ function initMap(){
       gm.addLayer({id:"stops-c",type:"circle",source:"stops",paint:{"circle-radius":14,"circle-color":"#007aff","circle-stroke-color":"#ffffff","circle-stroke-width":3}});
       gm.addLayer({id:"stops-n",type:"symbol",source:"stops",layout:{"text-field":["get","n"],"text-font":ff,"text-size":13,"text-allow-overlap":true,"text-ignore-placement":true},paint:{"text-color":"#ffffff"}});
       gm.addLayer({id:"me-d",type:"circle",source:"me",paint:{"circle-radius":8,"circle-color":"#007aff","circle-stroke-color":"#ffffff","circle-stroke-width":3}});
-      recolored=cfg.map!=="classic";if(recolored)recolor();
+      const ea=cfg.earth==="1";recolored=!ea&&cfg.map!=="classic";if(recolored)recolor();if(ea)applyEarth();
       gmReady=true;
       if(typeof nav!=="undefined"&&nav.on&&nav.geo.length)gm.getSource("nrt").setData(rtData());
       const q=pend||lastDraw;pend=null;if(q)drawMap(q[0],q[1]);
@@ -778,7 +795,7 @@ function paintLim(sp){
 }
 async function startNav(){
   const m=M();if(!m||!m.last||!m.last.route[1]||!navigator.geolocation)return;
-  closePc();nav.lim=null;nav.lq=null;nav.al=0;nav.fx=0;nav.pv=null;nav.dOff=0;nav.on=1;nav.busy=0;nav.mute=cfg.voice!=="1"?1:0;nav.ov=0;nav.d3=1;nav.last=null;$("n3").textContent="3D";$("nvm").textContent=nav.mute?"🔇":"🔊";$("sheet").hidden=true;$("fab").hidden=true;$("f3").hidden=true;nav.tgt=m.last.route[1];nav.pos=start;
+  closePc();nav.lim=null;nav.lq=null;nav.al=0;nav.fx=0;nav.pv=null;nav.dOff=0;nav.on=1;nav.busy=0;nav.mute=cfg.voice!=="1"?1:0;nav.ov=0;nav.d3=1;nav.last=null;$("n3").textContent="3D";$("nvm").textContent=nav.mute?"🔇":"🔊";$("sheet").hidden=true;$("fab").hidden=true;$("f4").hidden=$("f3").hidden=true;nav.tgt=m.last.route[1];nav.pos=start;
   $("nv").hidden=false;$("mapc").classList.add("fs");$("mx").hidden=true;$("nvd").textContent="Se calculează…";$("nvx").textContent="";$("nvn").textContent=nav.tgt.name||"Start";
   try{nav.wl=await navigator.wakeLock.request("screen")}catch(e){}
   try{await navLeg()}catch(e){$("nvd").textContent="Rută indisponibilă";$("nvx").textContent="Verifică internetul";return}
@@ -826,13 +843,13 @@ async function onPos(pos){
   if(nav.dOff>Math.max(70,acc*1.2)){if(++nav.off>=3&&Date.now()-nav.t>12000){nav.busy=1;speak("Recalculez traseul");try{await navLeg(p)}catch(e){}nav.busy=0}}else nav.off=0;
 }
 function stopNav(){nav.on=0;nav.busy=0;if(nav.w!=null)navigator.geolocation.clearWatch(nav.w);nav.w=null;try{nav.wl&&nav.wl.release()}catch(e){}
-  cancelAnimationFrame(nav.raf);$("lim").hidden=true;$("spd").classList.remove("over");if(mk3){mk3.remove();mk3=null}m3=null;if(gm&&gmReady){gm.getSource("nrt").setData(EMPTY);gm.getSource("ndone").setData(EMPTY);gm.easeTo({pitch:0,bearing:0,duration:600})}nav.last=null;nav.ov=0;$("nvo").classList.remove("on");$("sheet").hidden=false;$("fab").hidden=false;$("f3").hidden=false;$("f3").textContent="3D";setSnap(snap,false);$("nv").hidden=true;$("mapc").classList.remove("fs");$("mx").hidden=false;$("mx").textContent="⤢";setTimeout(()=>gm&&gm.resize(),60);try{speechSynthesis.cancel()}catch(e){}}
+  cancelAnimationFrame(nav.raf);$("lim").hidden=true;$("spd").classList.remove("over");if(mk3){mk3.remove();mk3=null}m3=null;if(gm&&gmReady){gm.getSource("nrt").setData(EMPTY);gm.getSource("ndone").setData(EMPTY);gm.easeTo({pitch:0,bearing:0,duration:600})}nav.last=null;nav.ov=0;$("nvo").classList.remove("on");$("sheet").hidden=false;$("fab").hidden=false;$("f4").hidden=$("f3").hidden=false;$("f3").textContent="3D";setSnap(snap,false);$("nv").hidden=true;$("mapc").classList.remove("fs");$("mx").hidden=false;$("mx").textContent="⤢";setTimeout(()=>gm&&gm.resize(),60);try{speechSynthesis.cancel()}catch(e){}}
 $("nvs").onclick=stopNav;$("n3").onclick=()=>{nav.d3=!nav.d3;$("n3").textContent=nav.d3?"3D":"2D";if(m3)m3.easeTo({pitch:nav.d3?62:0,bearing:nav.d3?hd:0,offset:[0,nav.d3?170:0],duration:600})};$("nvm").onclick=()=>{nav.mute=!nav.mute;$("nvm").textContent=nav.mute?"🔇":"🔊"};
 $("mx").onclick=()=>{const c=$("mapc").classList.toggle("fs");$("mx").textContent=c?"✕":"⤢";setTimeout(()=>gm&&gm.resize(),60)};
 paintNav();
 
 /* ---------- setări ---------- */
-let cfg={units:"km",voice:"1",rt:"0",theme:"sys",map:"google",sl:"1"};try{Object.assign(cfg,JSON.parse(localStorage.getItem("traseu_cfg")||"{}"))}catch(e){}
+let cfg={units:"km",voice:"1",rt:"0",theme:"sys",map:"google",sl:"1",earth:"0"};try{Object.assign(cfg,JSON.parse(localStorage.getItem("traseu_cfg")||"{}"))}catch(e){}
 function applyTheme(){const R=document.documentElement,t=cfg.theme,h=new Date().getHours();
   if(t==="sys")R.removeAttribute("data-theme");else R.setAttribute("data-theme",t==="time"?(h>=19||h<7?"dark":"light"):t);applyMapStyle()}
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>applyMapStyle());
@@ -844,6 +861,12 @@ $("stg").onclick=()=>openSheet("v-set");
 $("gd").onclick=()=>openSheet("v-ob");
 $("obk").onclick=()=>{try{localStorage.setItem("traseu_seen","1")}catch(e){}closeSheet()};
 $("rm").onclick=()=>{if(confirm("Ștergi hărțile, progresul și setările?")){try{localStorage.clear()}catch(e){}location.reload()}};
+$("f4").textContent=cfg.earth==="1"?"🗺":"🛰";
+$("f4").onclick=()=>{
+  if(!gm)return;cfg.earth=cfg.earth==="1"?"0":"1";try{localStorage.setItem("traseu_cfg",JSON.stringify(cfg))}catch(e){}
+  const on=cfg.earth==="1";$("f4").textContent=on?"🗺":"🛰";document.documentElement.dataset.ms=on?"earth":cfg.map;
+  gmReady=false;recolored=false;gm.once("style.load",()=>gm.easeTo({pitch:on?55:0,duration:900}));gm.setStyle(STYLE);
+};
 $("f3").onclick=()=>{if(!gm)return;const on=gm.getPitch()<10;gm.easeTo({pitch:on?58:0,duration:600});$("f3").textContent=on?"2D":"3D"};
 $("fab").onclick=async()=>{await getLoc(false);if(start&&gm)gm.easeTo({center:[start.lon,start.lat],zoom:15})};
 $("nvo").onclick=()=>{nav.ov=!nav.ov;$("nvo").classList.toggle("on",nav.ov);
@@ -860,10 +883,10 @@ function openPc(i,fly){
   $("pcd").textContent=p.desc||"";
   const on=m.sel.has(i);$("pct").textContent=on?"Scoate din traseu":"Adaugă la traseu";$("pct").classList.toggle("l",on);
   const ph=(p.desc||"").match(/(\+?\d[\d\s().-]{7,}\d)/),a=$("pcp");a.hidden=!ph;if(ph)a.href="tel:"+ph[1].replace(/[^\d+]/g,"");
-  $("pc").classList.add("on");$("fab").hidden=true;$("f3").hidden=true;
+  $("pc").classList.add("on");$("fab").hidden=true;$("f4").hidden=$("f3").hidden=true;
   if(fly&&gm)gm.easeTo({center:[p.lon,p.lat],zoom:Math.max(gm.getZoom(),14),offset:[0,-90],duration:500});
 }
-function closePc(){pcI=null;$("pc").classList.remove("on");const ok=M()&&!nav.on;$("fab").hidden=!ok;$("f3").hidden=!ok}
+function closePc(){pcI=null;$("pc").classList.remove("on");const ok=M()&&!nav.on;$("fab").hidden=!ok;$("f4").hidden=$("f3").hidden=!ok}
 $("pcx").onclick=closePc;
 $("pct").onclick=()=>{const m=M();if(pcI==null||!m)return;const i=pcI;m.sel.has(i)?m.sel.delete(i):m.sel.add(i);render();changed();openPc(i,false)};
 $("pcb").onclick=()=>{const m=M(),p=m&&m.pts[pcI];if(!p)return;manual=true;setStart(p.lat,p.lon,"Punct: "+p.name);plan(100);closePc()};
@@ -873,8 +896,8 @@ const peek=()=>["sgr","ask","bar"].reduce((a,id)=>a+$(id).offsetHeight,0)+18;
 const SN={peek:()=>peek(),half:()=>innerHeight*.5,full:()=>innerHeight*.88};
 let snap="half",dg=null;
 function sheetPx(){return $("sheet").hidden?0:SN[snap]()}
-function setSnap(k,anim=true){snap=k;const sh=$("sheet");sh.style.transition=anim?"":"none";sh.style.transform="translateY("+(innerHeight*.88-SN[k]())+"px)";
-  $("fab").style.bottom=(SN[k]()+14)+"px";$("fab").style.display=k==="full"?"none":"";$("f3").style.bottom=(SN[k]()+66)+"px";$("f3").style.display=k==="full"?"none":""}
+function setSnap(k,anim=true){snap=k;const sh=$("sheet");sh.style.height=Math.round(innerHeight*.88)+"px";sh.style.transition=anim?"":"none";sh.style.transform="translateY("+(innerHeight*.88-SN[k]())+"px)";
+  $("rb").style.bottom=(SN[k]()+14)+"px";$("rb").style.display=k==="full"?"none":""}
 ["sgr","bar"].forEach(id=>{const el=$(id);
   el.addEventListener("touchstart",e=>{dg={y:e.touches[0].clientY,t:SN[snap](),mv:0,v:null};$("sheet").style.transition="none"},{passive:true});
   el.addEventListener("touchmove",e=>{if(!dg)return;const dy=e.touches[0].clientY-dg.y;dg.mv=Math.max(dg.mv,Math.abs(dy));
