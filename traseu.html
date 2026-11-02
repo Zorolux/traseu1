@@ -178,6 +178,7 @@ h1{font-size:28px}
 .pca{display:flex;gap:8px;flex-wrap:wrap}
 .pca .btn{flex:1 1 40%;width:auto;margin-top:12px;text-align:center;text-decoration:none;display:block}
 .pca .btn[hidden]{display:none}
+#pcn2{flex-basis:100%;margin-top:14px}
 #rb{position:fixed;right:14px;z-index:30;display:flex;flex-direction:column;gap:12px;bottom:300px}
 #rb .mb{position:static;width:48px;height:48px;display:grid;place-content:center;font-size:17px;font-weight:700}
 #rb .mb[hidden]{display:none}
@@ -244,7 +245,7 @@ h1{font-size:28px}
 <div id="pc">
   <div class="pch"><div><b id="pcn"></b><span class="m" id="pcs"></span></div><button id="pcx">✕</button></div>
   <div id="pcd"></div>
-  <div class="pca"><button class="btn" id="pct">Adaugă la traseu</button><button class="btn l" id="pcb">Start de aici</button><a class="btn l" id="pcp" hidden>Sună</a></div>
+  <div class="pca"><button class="btn" id="pcn2">🧭 Navighează</button><button class="btn l" id="pct">Adaugă la traseu</button><button class="btn l" id="pcb">Start de aici</button><a class="btn l" id="pcp" hidden>Sună</a></div>
 </div>
 
 <div id="mt"></div>
@@ -806,9 +807,11 @@ function paintLim(sp){
   $("lim").textContent=disp;$("lim").classList.toggle("over",over);$("spd").classList.toggle("over",over);
   if(over&&Date.now()-(nav.al||0)>25000){nav.al=Date.now();speak("Limita de viteză este "+disp);try{navigator.vibrate&&navigator.vibrate(200)}catch(e){}}
 }
-async function startNav(){
-  const m=M();if(!m||!m.last||!m.last.route[1]||!navigator.geolocation)return;
-  closePc();nav.lim=null;nav.lq=null;nav.al=0;nav.fx=0;nav.pv=null;nav.dOff=0;nav.on=1;nav.busy=0;nav.mute=cfg.voice!=="1"?1:0;nav.ov=0;nav.d3=1;nav.last=null;$("n3").textContent="3D";$("nvm").textContent=nav.mute?"🔇":"🔊";$("sheet").hidden=true;$("fab").hidden=true;$("f4").hidden=$("f3").hidden=true;nav.tgt=m.last.route[1];nav.pos=start;
+async function startNav(t){
+  const one=t&&typeof t.lat==="number"?t:null,m=M();
+  if(!m||(!one&&(!m.last||!m.last.route[1]))||!navigator.geolocation)return;
+  if(one){if(!manual)await getLoc(true);if(!start){toast("Setează mai întâi locația de start.",6000);openSheet();return}}
+  closePc();nav.lim=null;nav.lq=null;nav.al=0;nav.fx=0;nav.pv=null;nav.dOff=0;nav.on=1;nav.busy=0;nav.mute=cfg.voice!=="1"?1:0;nav.ov=0;nav.d3=1;nav.last=null;$("n3").textContent="3D";$("nvm").textContent=nav.mute?"🔇":"🔊";$("sheet").hidden=true;$("fab").hidden=true;$("f4").hidden=$("f3").hidden=true;nav.tgt=one||m.last.route[1];nav.single=!!one;nav.pos=start;
   $("nv").hidden=false;$("mapc").classList.add("fs");$("mx").hidden=true;$("nvd").textContent="Se calculează…";$("nvx").textContent="";$("nvn").textContent=nav.tgt.name||"Start";
   try{nav.wl=await navigator.wakeLock.request("screen")}catch(e){}
   try{await navLeg()}catch(e){$("nvd").textContent="Rută indisponibilă";$("nvx").textContent="Verifică internetul";return}
@@ -837,6 +840,7 @@ async function onPos(pos){
   const m=M(),T=nav.tgt;
   if(hav(p,T)<40){
     nav.busy=1;speak("Ai ajuns la "+(T.name||"punctul de start"));setStart(p.lat,p.lon,"GPS");
+    if(nav.single){const ix=m.pts.findIndex(q=>q.lat===T.lat&&q.lon===T.lon&&q.name===T.name);if(ix>=0&&m.sel.has(ix))markDone(m,T);stopNav();return}
     if(T.name)markDone(m,T);clearTimeout(tm);await compute();
     const n=m.last&&m.last.route[1];
     if(!n){stopNav();speak("Toate opririle sunt terminate");return}
@@ -855,7 +859,7 @@ async function onPos(pos){
   nav.sp=sp;fetchLimit(p);paintLim(sp);
   if(nav.dOff>Math.max(70,acc*1.2)){if(++nav.off>=3&&Date.now()-nav.t>12000){nav.busy=1;speak("Recalculez traseul");try{await navLeg(p)}catch(e){}nav.busy=0}}else nav.off=0;
 }
-function stopNav(){nav.on=0;nav.busy=0;if(nav.w!=null)navigator.geolocation.clearWatch(nav.w);nav.w=null;try{nav.wl&&nav.wl.release()}catch(e){}
+function stopNav(){nav.single=false;nav.on=0;nav.busy=0;if(nav.w!=null)navigator.geolocation.clearWatch(nav.w);nav.w=null;try{nav.wl&&nav.wl.release()}catch(e){}
   cancelAnimationFrame(nav.raf);$("lim").hidden=true;$("spd").classList.remove("over");if(mk3){mk3.remove();mk3=null}m3=null;if(gm&&gmReady){gm.getSource("nrt").setData(EMPTY);gm.getSource("ndone").setData(EMPTY);gm.easeTo({pitch:0,bearing:0,duration:600})}nav.last=null;nav.ov=0;$("nvo").classList.remove("on");$("sheet").hidden=false;$("fab").hidden=false;$("f4").hidden=$("f3").hidden=false;$("f3").textContent="3D";setSnap(snap,false);$("nv").hidden=true;$("mapc").classList.remove("fs");$("mx").hidden=false;$("mx").textContent="⤢";setTimeout(()=>gm&&gm.resize(),60);try{speechSynthesis.cancel()}catch(e){}}
 $("nvs").onclick=stopNav;$("n3").onclick=()=>{nav.d3=!nav.d3;$("n3").textContent=nav.d3?"3D":"2D";if(m3)m3.easeTo({pitch:nav.d3?62:0,bearing:nav.d3?hd:0,offset:[0,nav.d3?170:0],duration:600})};$("nvm").onclick=()=>{nav.mute=!nav.mute;$("nvm").textContent=nav.mute?"🔇":"🔊"};
 $("mx").onclick=()=>{const c=$("mapc").classList.toggle("fs");$("mx").textContent=c?"✕":"⤢";setTimeout(()=>gm&&gm.resize(),60)};
@@ -896,13 +900,14 @@ function openPc(i,fly){
   $("pcn").textContent=p.name;
   $("pcs").textContent=(p.folder||"Punct")+(start?" · la "+km(hav(start,p)):"");
   $("pcd").textContent=p.desc||"";
-  const on=m.sel.has(i);$("pct").textContent=on?"Scoate din traseu":"Adaugă la traseu";$("pct").classList.toggle("l",on);
+  const on=m.sel.has(i);$("pct").textContent=on?"Scoate din traseu":"Adaugă la traseu";$("pct").classList.add("l");
   const ph=(p.desc||"").match(/(\+?\d[\d\s().-]{7,}\d)/),a=$("pcp");a.hidden=!ph;if(ph)a.href="tel:"+ph[1].replace(/[^\d+]/g,"");
   $("pc").classList.add("on");$("fab").hidden=true;$("f4").hidden=$("f3").hidden=true;
   if(fly&&gm)gm.easeTo({center:[p.lon,p.lat],zoom:Math.max(gm.getZoom(),14),offset:[0,-90],duration:500});
 }
 function closePc(){pcI=null;$("pc").classList.remove("on");const ok=M()&&!nav.on;$("fab").hidden=!ok;$("f4").hidden=$("f3").hidden=!ok}
 $("pcx").onclick=closePc;
+$("pcn2").onclick=()=>{const m=M(),p=m&&m.pts[pcI];if(!p)return;closePc();startNav(p)};
 $("pct").onclick=()=>{const m=M();if(pcI==null||!m)return;const i=pcI;m.sel.has(i)?m.sel.delete(i):m.sel.add(i);render();changed();openPc(i,false)};
 $("pcb").onclick=()=>{const m=M(),p=m&&m.pts[pcI];if(!p)return;manual=true;setStart(p.lat,p.lon,"Punct: "+p.name);plan(100);closePc()};
 
