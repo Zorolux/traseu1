@@ -181,6 +181,8 @@ h1{font-size:28px}
 #rb{position:fixed;right:14px;z-index:30;display:flex;flex-direction:column;gap:12px;bottom:300px}
 #rb .mb{position:static;width:48px;height:48px;display:grid;place-content:center;font-size:17px;font-weight:700}
 #rb .mb[hidden]{display:none}
+#mt{display:none;position:fixed;left:12px;right:12px;top:calc(env(safe-area-inset-top,0px) + 132px);z-index:40;background:var(--glass);-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px);border-radius:18px;padding:12px 14px;font-size:13px;box-shadow:var(--hl),var(--sh)}
+#mt.on{display:block}
 </style>
 </head>
 <body>
@@ -244,6 +246,8 @@ h1{font-size:28px}
   <div id="pcd"></div>
   <div class="pca"><button class="btn" id="pct">Adaugă la traseu</button><button class="btn l" id="pcb">Start de aici</button><a class="btn l" id="pcp" hidden>Sună</a></div>
 </div>
+
+<div id="mt"></div>
 
 <div id="nv" hidden>
   <div class="nvt"><span id="nvi">↑</span><div><b id="nvd">—</b><span id="nvx"></span><span id="nvp"></span></div></div>
@@ -646,10 +650,14 @@ function recolor(){
     }
   });
 }
+let earthErr=0;
+function revertEarth(msg){
+  if(cfg.earth!=="1"||!gm)return;cfg.earth="0";try{localStorage.setItem("traseu_cfg",JSON.stringify(cfg))}catch(e){}
+  $("f4").textContent="🛰";document.documentElement.dataset.ms=cfg.map;gmReady=false;recolored=false;gm.setStyle(STYLE);toast(msg,10000);
+}
 function applyEarth(){
   try{
     gm.addSource("sat",{type:"raster",tiles:["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],tileSize:256,maxzoom:19,attribution:"Imagini © Esri, Maxar, Earthstar Geographics"});
-    gm.addSource("dem",{type:"raster-dem",tiles:["https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"],tileSize:256,maxzoom:14,encoding:"terrarium"});
     const L0=gm.getStyle().layers,mine=/^(rt|nrt|ndone|pts|cl|sel|stops|me)-/,first=L0.find(l=>l.type!=="background");
     gm.addLayer({id:"sat-r",type:"raster",source:"sat"},first&&first.id);
     L0.forEach(l=>{
@@ -657,7 +665,6 @@ function applyEarth(){
       if(l.type==="symbol"){try{gm.setPaintProperty(l.id,"text-color","#ffffff");gm.setPaintProperty(l.id,"text-halo-color","rgba(0,0,0,.7)");gm.setPaintProperty(l.id,"text-halo-width",1.4)}catch(e){}}
       else{try{gm.setLayoutProperty(l.id,"visibility","none")}catch(e){}}
     });
-    gm.setTerrain({source:"dem",exaggeration:1.15});
   }catch(e){}
 }
 function applyMapStyle(){
@@ -666,13 +673,18 @@ function applyMapStyle(){
   if(cfg.map==="classic"){if(recolored){recolored=false;gmReady=false;gm.setStyle(STYLE)}}
   else{recolor();recolored=true}
 }
+const FALLBACK={version:8,glyphs:"https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf",sources:{osm:{type:"raster",tiles:["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],tileSize:256,maxzoom:19,attribution:"© OpenStreetMap"}},layers:[{id:"osm",type:"raster",source:"osm"}]};
+function toast(t,ms){const e=$("mt");e.textContent=t;e.classList.add("on");clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove("on"),ms||9000)}
 function initMap(){
-  if(gm||typeof maplibregl==="undefined")return;
+  if(gm)return;
+  if(typeof maplibregl==="undefined"){if(!initMap.w){initMap.w=1;toast("Biblioteca hărții nu s-a încărcat. Verifică internetul sau dezactivează blocantele de conținut.",20000)}return}
   try{
     gm=new maplibregl.Map({container:"map",style:STYLE,center:[25,45.9],zoom:5.5,attributionControl:false,maxPitch:75,fadeDuration:150});
     gm.addControl(new maplibregl.AttributionControl({compact:true}),"top-left");
+    gm.on("error",e=>{if(e&&e.sourceId==="sat"&&cfg.earth==="1"&&++earthErr>=3)revertEarth("Imaginile din satelit nu se încarcă. Am revenit la harta obișnuită.");const m=(e&&e.error&&e.error.message)||"";if(!gmReady||/pbf|sprite|style|json/i.test(m))toast("Hartă: "+m.slice(0,150),9000)});
+    setTimeout(()=>{if(gm&&!gmReady&&!gm._fb){gm._fb=1;toast("Stilul hărții nu s-a încărcat. Folosesc harta de rezervă (OpenStreetMap).",12000);gm.setStyle(FALLBACK)}},10000);
     gm.addControl(new maplibregl.NavigationControl({showZoom:false,visualizePitch:true}),"top-right");
-    gm.on("style.load",()=>{
+    gm.on("style.load",()=>{try{
       const lay=gm.getStyle().layers,ff=(lay.find(l=>l.type==="symbol"&&l.layout&&l.layout["text-font"])||{layout:{}}).layout["text-font"]||["Noto Sans Regular"];
       if(!lay.some(l=>l.type==="fill-extrusion")){try{gm.addLayer({id:"b3d",type:"fill-extrusion",source:"openmaptiles","source-layer":"building",minzoom:14,paint:{"fill-extrusion-color":"#d9d6cf","fill-extrusion-height":["coalesce",["get","render_height"],8],"fill-extrusion-base":["coalesce",["get","render_min_height"],0],"fill-extrusion-opacity":.85}})}catch(e){}}
       ["rt","nrt","ndone","sel","stops","me"].forEach(id=>gm.addSource(id,{type:"geojson",data:EMPTY}));gm.addSource("pts",{type:"geojson",data:EMPTY,cluster:true,clusterRadius:42,clusterMaxZoom:13});
@@ -693,15 +705,16 @@ function initMap(){
       gmReady=true;
       if(typeof nav!=="undefined"&&nav.on&&nav.geo.length)gm.getSource("nrt").setData(rtData());
       const q=pend||lastDraw;pend=null;if(q)drawMap(q[0],q[1]);
-    });
+    }catch(e){toast("Eroare straturi hartă: "+e.message,15000);gmReady=true}});
     ["pts-h","sel-c"].forEach(id=>gm.on("click",id,e=>{if(e.features&&e.features.length)openPc(e.features[0].properties.i,true)}));
     gm.on("click","cl-c",e=>{gm.easeTo({center:e.features[0].geometry.coordinates,zoom:gm.getZoom()+2.2})});
     gm.on("click",e=>{const f=gm.queryRenderedFeatures(e.point,{layers:["pts-h","sel-c","cl-c"]});if(!f.length)closePc()});
     
-  }catch(e){gm=null}
+  }catch(e){gm=null;toast("Harta nu poate porni: "+e.message,20000)}
 }
 function paintMe(){if(!gmReady)return;gm.getSource("me").setData(start?FC([pt([start.lon,start.lat],{k0:gpsAcc/(156543.03*Math.cos(start.lat*Math.PI/180))})]):EMPTY)}
-function drawMap(m,r){
+function drawMap(m,r){try{drawMap0(m,r)}catch(e){toast("Eroare hartă: "+e.message,12000)}}
+function drawMap0(m,r){
   lastDraw=[m,r];initMap();if(!gm)return;
   if(!gmReady){pend=[m,r];return}
   const un=[],se=[];m.pts.forEach((p,i)=>{const sl=m.sel.has(i),dn=m.done.includes(i);(sl||dn?se:un).push(pt([p.lon,p.lat],{i,n:p.name,d:dn?1:0}))});
@@ -850,6 +863,7 @@ paintNav();
 
 /* ---------- setări ---------- */
 let cfg={units:"km",voice:"1",rt:"0",theme:"sys",map:"google",sl:"1",earth:"0"};try{Object.assign(cfg,JSON.parse(localStorage.getItem("traseu_cfg")||"{}"))}catch(e){}
+cfg.earth="0";
 function applyTheme(){const R=document.documentElement,t=cfg.theme,h=new Date().getHours();
   if(t==="sys")R.removeAttribute("data-theme");else R.setAttribute("data-theme",t==="time"?(h>=19||h<7?"dark":"light"):t);applyMapStyle()}
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>applyMapStyle());
@@ -865,7 +879,8 @@ $("f4").textContent=cfg.earth==="1"?"🗺":"🛰";
 $("f4").onclick=()=>{
   if(!gm)return;cfg.earth=cfg.earth==="1"?"0":"1";try{localStorage.setItem("traseu_cfg",JSON.stringify(cfg))}catch(e){}
   const on=cfg.earth==="1";$("f4").textContent=on?"🗺":"🛰";document.documentElement.dataset.ms=on?"earth":cfg.map;
-  gmReady=false;recolored=false;gm.once("style.load",()=>gm.easeTo({pitch:on?55:0,duration:900}));gm.setStyle(STYLE);
+  gmReady=false;recolored=false;earthErr=0;gm.once("style.load",()=>gm.easeTo({pitch:on?55:0,duration:900}));gm.setStyle(STYLE);
+  if(on)setTimeout(()=>{if(cfg.earth==="1"&&gm&&gmReady&&!(gm.getSource("sat")&&gm.isSourceLoaded("sat")))revertEarth("Imaginile din satelit nu s-au încărcat. Am revenit la harta obișnuită.")},14000);
 };
 $("f3").onclick=()=>{if(!gm)return;const on=gm.getPitch()<10;gm.easeTo({pitch:on?58:0,duration:600});$("f3").textContent=on?"2D":"3D"};
 $("fab").onclick=async()=>{await getLoc(false);if(start&&gm)gm.easeTo({center:[start.lon,start.lat],zoom:15})};
