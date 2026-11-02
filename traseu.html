@@ -566,7 +566,7 @@ function showRoute(m,r){
   const res=$("res"),rc=$("rc"),bar=$("bar");res.innerHTML="";
   if(!r){rc.hidden=true;bar.hidden=true;drawMap(m,null);setTimeout(()=>setSnap(snap),0);return}
   rc.hidden=false;bar.hidden=false;
-  const n=r.route.length-1;
+  const n=r.route.length-1;const T0=Date.now(),hm=t=>new Date(t).toLocaleTimeString("ro-RO",{hour:"2-digit",minute:"2-digit"});
   $("sum").innerHTML="<span><b>"+n+"</b> opriri</span><span><b>"+km(r.dist)+"</b></span>"+(r.dur?"<span><b>"+mn(r.dur)+"</b></span>":"")+(r.approx?'<span>≈ linie dreaptă</span>':"");
   $("stats").innerHTML="<div><b>"+n+"</b><span>opriri</span></div><div><b>"+km(r.dist)+"</b><span>distanță</span></div><div><b>"+(r.dur?mn(r.dur):"—")+"</b><span>sosire "+(r.dur?hm(T0+r.dur*1000):"—")+"</span></div>";
   const first=r.route[0];
@@ -574,7 +574,7 @@ function showRoute(m,r){
   s0.innerHTML='<div class="nd s">★</div><b>Start</b><span class="m"></span>';
   s0.querySelector(".m").textContent=start?start.src:"";
   s0.style.setProperty("--x","0");res.append(s0);
-  let cum=0;const T0=Date.now(),hm=t=>new Date(t).toLocaleTimeString("ro-RO",{hour:"2-digit",minute:"2-digit"});
+  let cum=0;
   r.route.forEach((p,i)=>{
     if(i===0)return;const lg=r.legs[i-1];cum+=lg.duration||0;
     const back=start&&p.lat===start.lat&&p.lon===start.lon;
