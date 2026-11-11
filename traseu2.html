@@ -364,7 +364,7 @@ h1{font-size:28px}
       <div class="opt"><h3>Stil hartă</h3><div class="chips" id="cm"><button class="pill" data-v="google">Google</button><button class="pill" data-v="waze">Waze</button><button class="pill" data-v="classic">Clasic</button></div><div class="m" style="margin-top:6px">Stilurile sunt inspirate din aplicațiile respective, nu copii exacte.</div></div>
       <div class="opt"><h3>Temă</h3><div class="chips" id="ct"><button class="pill" data-v="sys">Sistem</button><button class="pill" data-v="light">Zi</button><button class="pill" data-v="dark">Noapte</button><button class="pill" data-v="time">După oră</button></div><div class="m" style="margin-top:6px">„După oră”: noapte între 19:00 și 07:00.</div></div>
       <div class="opt"><h3>Ajutor</h3><button class="btn l" id="gd">Vezi ghidul</button><button class="btn l" id="rm" style="color:var(--r)">Șterge toate datele</button></div>
-      <div class="m" style="text-align:center;margin-top:12px">Hartă: © OpenStreetMap · OpenFreeMap · MapLibre<br>Versiune: 10 nov · d (landscape + recalculare)</div>
+      <div class="m" style="text-align:center;margin-top:12px">Hartă: © OpenStreetMap · OpenFreeMap · MapLibre<br>Versiune: 11 nov · f (acoperișuri + culori)</div>
     </div>
     <div class="vw" id="v-ob" hidden>
       <h2>Bine ai venit 👋</h2>
@@ -668,6 +668,36 @@ const PAL={
  waze:{
   l:{bg:"#eef0f3",water:"#8fd0f0",park:"#bde5b2",wood:"#a9d9a0",bld:"#dfe3e8",hw:"#ffffff",hwc:"#7f9bb5",ar:"#ffffff",arc:"#a9bccd",mi:"#ffffff",mic:"#c4d0dc",path:"#d3dbe3",rail:"#9fb0c0",tx:"#2b3a4a",tx2:"#5b6f84",halo:"#ffffff"},
   d:{bg:"#1b2531",water:"#0f3a57",park:"#1f4235",wood:"#1b3a2f",bld:"#243241",hw:"#6fa8dc",hwc:"#3c6e9f",ar:"#4a6179",arc:"#2e3f52",mi:"#3a4e63",mic:"#2a3a4c",path:"#3d5064",rail:"#4c6178",tx:"#dbe6f2",tx2:"#9db4cc",halo:"#17202a"}}};
+/* clădiri: culori variate (sau culoarea reală din OSM), acoperiș separat, lumină */
+function bldExprs(dark){
+  const h=["coalesce",["get","render_height"],8],mh=["coalesce",["get","render_min_height"],0];
+  const sd=["floor",["to-number",["id"],["*",h,37]]];
+  const wallLight=["step",h,["match",["%",sd,6],0,"#efe3cf",1,"#e9d7c3",2,"#f0e8d9",3,"#e3dacd",4,"#ecdac8","#e0e3e7"],45,"#cdd2d8"];
+  const wallDark=["step",h,"#3a393e",45,"#30353c"];
+  const roofLight=["step",h,["match",["%",sd,3],0,"#a9533b",1,"#8e4d3d","#77706c"],9,"#8b8884",45,"#a2a7ae"];
+  const roofDark=["step",h,"#5a3a33",9,"#4a4a4d",45,"#555a63"];
+  const wall=dark?wallDark:["to-color",["get","colour"],wallLight];
+  const top=["max",["-",h,.45],["+",mh,.1]];
+  return{h,mh,wall,roof:dark?roofDark:roofLight,top,roofTop:["max",h,["+",mh,.2]]}
+}
+function styleBuildings(){
+  if(!gm)return;const dark=isDark(),E=bldExprs(dark);
+  try{if(gm.getLayer("b3d-roof"))gm.removeLayer("b3d-roof")}catch(e){}
+  const L=gm.getStyle().layers,bi=L.findIndex(l=>l.type==="fill-extrusion");
+  if(bi>=0){
+    const base=L[bi],before=L[bi+1]&&L[bi+1].id;let roofOk=false;
+    try{
+      const ly={id:"b3d-roof",type:"fill-extrusion",source:base.source,"source-layer":base["source-layer"],minzoom:15,
+        paint:{"fill-extrusion-color":E.roof,"fill-extrusion-base":E.top,"fill-extrusion-height":E.roofTop,"fill-extrusion-opacity":.98,"fill-extrusion-vertical-gradient":true}};
+      if(base.filter)ly.filter=base.filter;
+      gm.addLayer(ly,before);roofOk=!!gm.getLayer("b3d-roof");
+    }catch(e){}
+    const P={"fill-extrusion-color":E.wall,"fill-extrusion-opacity":.98,"fill-extrusion-vertical-gradient":true,"fill-extrusion-base":E.mh};
+    if(roofOk)P["fill-extrusion-height"]=E.top;
+    Object.keys(P).forEach(k=>{try{gm.setPaintProperty(base.id,k,P[k])}catch(e){}});
+  }
+  try{gm.setLight({anchor:"viewport",color:dark?"#9fb4d6":"#fff1d9",intensity:dark?.35:.62,position:[1.4,205,52]})}catch(e){}
+}
 const isDark=()=>{const t=document.documentElement.getAttribute("data-theme");return t?t==="dark":matchMedia("(prefers-color-scheme: dark)").matches};
 function recolor(){
   if(!gm||!PAL[cfg.map])return;
@@ -677,7 +707,7 @@ function recolor(){
     const set=(k,v)=>{try{gm.setPaintProperty(l.id,k,v)}catch(e){}};
     if(l.id==="pts-l"||l.id==="sel-l"){set("text-color",P.tx);set("text-halo-color",P.halo);return}
     if(/^(rt|nrt|ndone|pts|cl|sel|stops|me)-/.test(l.id))return;
-    if(l.id==="b3d"||l.type==="fill-extrusion"){set("fill-extrusion-color",P.bld);return}
+    if(l.id==="b3d"||l.type==="fill-extrusion")return;
     if(l.type==="background")set("background-color",P.bg);
     else if(l.type==="fill"){
       if(sl==="water"||/water/.test(id))set("fill-color",P.water);
@@ -721,7 +751,7 @@ function applyMapStyle(){
   document.documentElement.dataset.ms=cfg.earth==="1"?"earth":cfg.map;
   if(!gm||!gmReady||cfg.earth==="1")return;
   if(cfg.map==="classic"){if(recolored){recolored=false;gmReady=false;gm.setStyle(STYLE)}}
-  else{recolor();recolored=true}
+  else{recolor();recolored=true;styleBuildings()}
 }
 const FALLBACK={version:8,glyphs:"https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf",sources:{osm:{type:"raster",tiles:["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],tileSize:256,maxzoom:19,attribution:"© OpenStreetMap"}},layers:[{id:"osm",type:"raster",source:"osm"}]};
 function toast(t,ms){const e=$("mt");e.textContent=t;e.classList.add("on");clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove("on"),ms||9000)}
@@ -751,7 +781,7 @@ function initMap(){
       gm.addLayer({id:"stops-c",type:"circle",source:"stops",paint:{"circle-radius":14,"circle-color":"#007aff","circle-stroke-color":"#ffffff","circle-stroke-width":3}});
       gm.addLayer({id:"stops-n",type:"symbol",source:"stops",layout:{"text-field":["get","n"],"text-font":ff,"text-size":13,"text-allow-overlap":true,"text-ignore-placement":true},paint:{"text-color":"#ffffff"}});
       gm.addLayer({id:"me-d",type:"circle",source:"me",paint:{"circle-radius":8,"circle-color":"#007aff","circle-stroke-color":"#ffffff","circle-stroke-width":3}});
-      const ea=cfg.earth==="1";recolored=!ea&&cfg.map!=="classic";if(recolored)recolor();if(ea)applyEarth();
+      const ea=cfg.earth==="1";recolored=!ea&&cfg.map!=="classic";if(recolored)recolor();if(ea)applyEarth();else styleBuildings();
       gmReady=true;
       if(typeof nav!=="undefined"&&nav.on&&nav.geo.length){gm.getSource("nrt").setData(rtData());["rt-c","rt-l"].forEach(id=>{try{gm.setLayoutProperty(id,"visibility","none")}catch(e){}})}
       const q=pend||lastDraw;pend=null;if(q)drawMap(q[0],q[1]);
@@ -828,7 +858,7 @@ function ptAt(s){
 }
 const mvp=(p,b,d)=>{const r=Math.PI/180;return{lat:p.lat+d*Math.cos(b*r)/111320,lon:p.lon+d*Math.sin(b*r)/(111320*Math.cos(p.lat*r))}};
 /* zoom după viteză (km/h → zoom) */
-const ZT=[[0,18],[25,17.5],[50,16.9],[80,16.1],[110,15.5],[140,15]];
+const ZT=[[0,18.6],[25,18.1],[50,17.5],[80,16.7],[110,16.1],[140,15.6]];
 function zBase(kh){for(let i=1;i<ZT.length;i++)if(kh<=ZT[i][0]){const a=ZT[i-1],b=ZT[i];return a[1]+(b[1]-a[1])*(kh-a[0])/(b[0]-a[0])}return ZT[ZT.length-1][1]}
 function camIntro(){if(!gm)return;const c=gm.getCenter();nav.c0={lng:c.lng,lat:c.lat};nav.cz=gm.getZoom();nav.cp=gm.getPitch();nav.cb=gm.getBearing();nav.pad=0;nav.padl=0;nav.i0=performance.now()}
 function enterNav(a){
@@ -879,8 +909,8 @@ function tick(t){
   let f=(!arr&&dM<R)?Math.min(1,Math.max(0,(R-dM)/(R-45))):0;f=f*f*(3-2*f);
   const T=nav.tgt,dT=T?hav(nav.dp,T):1e9,dF=nav.free?dT:Math.max(dT,nav.L-nav.s);
   let fe=Math.min(1,Math.max(0,(150-dF)/125));fe=fe*fe*(3-2*fe);
-  const bz=zBase(nav.v*3.6),za=Math.min(18.6,Math.max(bz+.9,17.9)),z1=bz+f*(za-bz),zT=z1+fe*(Math.max(z1,19.2)-z1);
-  const pb=ORI?54:62,pT=nav.d3?(pb-16*f)*(1-fe)+40*fe:0;
+  const bz=zBase(nav.v*3.6),za=Math.min(19.1,Math.max(bz+.9,18.4)),z1=bz+f*(za-bz),zT=z1+fe*(Math.max(z1,19.5)-z1);
+  const pb=ORI?58:66,pT=nav.d3?(pb-16*f)*(1-fe)+40*fe:0;
   nav.cz+=(zT-nav.cz)*(1-Math.exp(-dt/(zT>nav.cz?.7:1.4)));
   nav.cp+=(pT-nav.cp)*(1-Math.exp(-dt/.8));
   nav.cb=angLerp(nav.cb,nav.d3?hd:0,1-Math.exp(-dt/.15));
