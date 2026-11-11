@@ -32,7 +32,7 @@ button.on{background:#007aff!important;color:#fff}
 <script src="https://cdn.jsdelivr.net/npm/pmtiles@3.2.0/dist/pmtiles.js"></script>
 <script type="module">
 /* Harta „compatibilă” cu pluginul: Protomaps (straturile „buildings” și „pois”, ca în exemplul pluginului).
-   Fără cheie folosește arhiva publică de test Protomaps (poate fi uneori indisponibilă).
+   Fără cheie folosește cel mai recent build zilnic Protomaps (cu citiri parțiale, doar zona vizibilă).
    Cu cheie gratuită Protomaps: adaugă ?key=CHEIA la adresa paginii. */
 const PLUGIN_URL="https://cdn.jsdelivr.net/npm/maplibre-landmarks/+esm";
 const BASEMAPS_URL="https://cdn.jsdelivr.net/npm/@protomaps/basemaps@5.5.1/+esm";
@@ -45,9 +45,20 @@ addEventListener("unhandledrejection",e=>log("Eroare (promisiune): "+((e.reason&
   let bm;try{bm=await import(BASEMAPS_URL)}catch(e){log("Nu pot încărca stilul Protomaps: "+e.message,"e");return}
   const key=new URLSearchParams(location.search).get("key");
   const protocol=new pmtiles.Protocol();maplibregl.addProtocol("pmtiles",protocol.tile);
+  async function findBuild(){
+    const d=Date.now();
+    for(let i=0;i<7;i++){
+      const t=new Date(d-i*864e5),n=t.getUTCFullYear()+String(t.getUTCMonth()+1).padStart(2,"0")+String(t.getUTCDate()).padStart(2,"0");
+      const u="https://build.protomaps.com/"+n+".pmtiles";
+      try{const r=await fetch(u,{headers:{Range:"bytes=0-16383"}});if(r.ok||r.status===206){try{r.body&&r.body.cancel()}catch(x){}return u}}catch(e){}
+    }
+    return null;
+  }
+  let pm=null;
+  if(!key){log("Caut ultima hartă zilnică Protomaps…");pm=await findBuild()}
   const src=key?{type:"vector",url:"https://api.protomaps.com/tiles/v4.json?key="+encodeURIComponent(key),attribution:"© OpenStreetMap, Protomaps"}
-               :{type:"vector",url:"pmtiles://https://demo-bucket.protomaps.com/v4.pmtiles",attribution:"© OpenStreetMap, Protomaps"};
-  log("Sursă hartă: "+(key?"Protomaps API (cheia ta)":"arhiva publică de test Protomaps"));
+               :{type:"vector",url:"pmtiles://"+(pm||"https://demo-bucket.protomaps.com/v4.pmtiles"),attribution:"© OpenStreetMap, Protomaps"};
+  log("Sursă hartă: "+(key?"Protomaps API (cheia ta)":(pm?"build zilnic "+pm.split("/").pop():"arhiva de test (build zilnic indisponibil)")));
   const style={version:8,
     glyphs:"https://protomaps.github.io/basemaps-assets/fonts/{fontstack}/{range}.pbf",
     sprite:"https://protomaps.github.io/basemaps-assets/sprites/v4/light",
