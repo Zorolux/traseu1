@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Test plugin 3D</title>
+<title>Test plugin 3D (Protomaps)</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 <style>
 html,body{margin:0;height:100%;background:#f2f2f7;font:15px -apple-system,system-ui,sans-serif}
 #map{position:fixed;inset:0}
-#log{position:fixed;left:8px;right:8px;top:calc(env(safe-area-inset-top,0px) + 8px);max-height:36vh;overflow:auto;background:rgba(255,255,255,.93);border-radius:14px;padding:8px 12px;font-size:12px;line-height:1.4;z-index:5;white-space:pre-wrap;word-break:break-word}
+#log{position:fixed;left:8px;right:8px;top:calc(env(safe-area-inset-top,0px) + 8px);max-height:34vh;overflow:auto;background:rgba(255,255,255,.93);border-radius:14px;padding:8px 12px;font-size:12px;line-height:1.4;z-index:5;white-space:pre-wrap;word-break:break-word}
 #log .e{color:#c62828;font-weight:600}#log .ok{color:#1b7f3b}
 #bar{position:fixed;left:8px;right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 10px);z-index:5;display:flex;flex-direction:column;gap:8px}
 #lays{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px}
@@ -25,65 +25,66 @@ button.on{background:#007aff!important;color:#fff}
   <div id="lays"></div>
   <div class="row">
     <button id="bl">📍 Locația mea</button>
-    <button id="br">Clădirile hărții: rămân</button>
     <button id="bh">Ascunde log</button>
   </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-<script>
-/* Pagină de test: încarcă pluginul maplibre-landmarks și îți lasă să adaugi fiecare strat separat.
-   Clădirile originale ale hărții RĂMÂN implicit (înainte pluginul le ascundea, de aceea dispăruseră). */
+<script src="https://cdn.jsdelivr.net/npm/pmtiles@3.2.0/dist/pmtiles.js"></script>
+<script type="module">
+/* Harta „compatibilă” cu pluginul: Protomaps (straturile „buildings” și „pois”, ca în exemplul pluginului).
+   Fără cheie folosește arhiva publică de test Protomaps (poate fi uneori indisponibilă).
+   Cu cheie gratuită Protomaps: adaugă ?key=CHEIA la adresa paginii. */
 const PLUGIN_URL="https://cdn.jsdelivr.net/npm/maplibre-landmarks/+esm";
+const BASEMAPS_URL="https://cdn.jsdelivr.net/npm/@protomaps/basemaps@5.5.1/+esm";
 const logEl=document.getElementById("log");
-function log(t,c){const d=document.createElement("div");if(c)d.className=c;d.textContent=t;logEl.appendChild(d);logEl.scrollTop=logEl.scrollHeight}
+const log=(t,c)=>{const d=document.createElement("div");if(c)d.className=c;d.textContent=t;logEl.appendChild(d);logEl.scrollTop=logEl.scrollHeight};
 addEventListener("error",e=>log("Eroare: "+(e.message||e.type),"e"));
 addEventListener("unhandledrejection",e=>log("Eroare (promisiune): "+((e.reason&&e.reason.message)||e.reason),"e"));
-if(typeof maplibregl==="undefined"){log("MapLibre nu s-a încărcat.","e")}
-else{
-  const map=new maplibregl.Map({container:"map",style:"https://tiles.openfreemap.org/styles/liberty",
-    center:[28.6383,44.1733],zoom:17.2,pitch:62,bearing:20,maxPitch:75,attributionControl:{compact:true}});
-  window.map=map;let api=null,replace=false;const added={};
+(async()=>{
+  if(typeof maplibregl==="undefined"||typeof pmtiles==="undefined"){log("MapLibre sau PMTiles nu s-au încărcat (internet / blocant de conținut).","e");return}
+  let bm;try{bm=await import(BASEMAPS_URL)}catch(e){log("Nu pot încărca stilul Protomaps: "+e.message,"e");return}
+  const key=new URLSearchParams(location.search).get("key");
+  const protocol=new pmtiles.Protocol();maplibregl.addProtocol("pmtiles",protocol.tile);
+  const src=key?{type:"vector",url:"https://api.protomaps.com/tiles/v4.json?key="+encodeURIComponent(key),attribution:"© OpenStreetMap, Protomaps"}
+               :{type:"vector",url:"pmtiles://https://demo-bucket.protomaps.com/v4.pmtiles",attribution:"© OpenStreetMap, Protomaps"};
+  log("Sursă hartă: "+(key?"Protomaps API (cheia ta)":"arhiva publică de test Protomaps"));
+  const style={version:8,
+    glyphs:"https://protomaps.github.io/basemaps-assets/fonts/{fontstack}/{range}.pbf",
+    sprite:"https://protomaps.github.io/basemaps-assets/sprites/v4/light",
+    sources:{protomaps:src},
+    layers:bm.layers("protomaps",bm.namedFlavor("light"),{lang:"en"})};
+  const map=new maplibregl.Map({container:"map",style,center:[28.6383,44.1733],zoom:17,pitch:62,bearing:20,maxPitch:75,attributionControl:{compact:true}});
+  window.map=map;let api=null;const added={};
   map.on("error",e=>{const m=(e&&e.error&&e.error.message)||"";if(m)log("Hartă: "+m.slice(0,160),"e")});
-  const bldIds=()=>map.getStyle().layers.map(l=>l.id).filter(i=>/building/i.test(i));
-  const firstSymbol=()=>(map.getStyle().layers.find(l=>l.type==="symbol")||{}).id;
+  const has=id=>!!map.getLayer(id);
   function addLayer(name,btn){
     try{
       const opts={id:name.toLowerCase()};
-      if(name==="LandmarksLayer")opts.replaceBuildings=replace?bldIds():[];
+      if(name==="LandmarksLayer")opts.replaceBuildings=["buildings"];
       const L=new api[name](opts);
-      map.addLayer(L,firstSymbol());added[name]=opts.id;btn.classList.add("on");
+      map.addLayer(L,has("pois")?"pois":undefined);added[name]=opts.id;btn.classList.add("on");
       if(api.setTheme&&!api._th){try{api.setTheme(map,"day");api._th=1}catch(x){}}
       log("+ "+name+" adăugat.","ok");
     }catch(e){log(name+": "+(e&&e.message||e),"e")}
   }
-  function removeLayer(name,btn){
-    try{map.removeLayer(added[name]);delete added[name];btn.classList.remove("on");log("− "+name+" scos.")}catch(e){log(name+": "+e.message,"e")}
-  }
+  function removeLayer(name,btn){try{map.removeLayer(added[name]);delete added[name];btn.classList.remove("on");log("− "+name+" scos.")}catch(e){log(name+": "+e.message,"e")}}
   map.on("load",async()=>{
-    log("Harta s-a încărcat. Clădiri: "+bldIds().join(", "),"ok");
+    log("Harta s-a încărcat. Straturi „buildings”: "+(has("buildings")?"da":"NU")+", „pois”: "+(has("pois")?"da":"NU"),"ok");
     try{
-      log("Încarc pluginul…");api=await import(PLUGIN_URL);
-      const names=Object.keys(api);
-      log("Plugin încărcat. Export-uri ("+names.length+"): "+names.join(", "),"ok");
+      api=await import(PLUGIN_URL);
+      log("Plugin încărcat.","ok");
       if(api.DEFAULT_FIELDS)log("DEFAULT_FIELDS: "+JSON.stringify(api.DEFAULT_FIELDS));
-      if(api.DISCOVERY_MIN_ZOOM!=null)log("DISCOVERY_MIN_ZOOM: "+api.DISCOVERY_MIN_ZOOM);
       const box=document.getElementById("lays");
-      names.filter(n=>/Layer$/.test(n)&&typeof api[n]==="function").forEach(n=>{
+      Object.keys(api).filter(n=>/Layer$/.test(n)&&n!=="ModuleLayer"&&typeof api[n]==="function").forEach(n=>{
         const b=document.createElement("button");b.textContent="+ "+n.replace(/Layer$/,"");
         b.onclick=()=>added[n]?removeLayer(n,b):addLayer(n,b);box.appendChild(b)});
-      log("Apasă pe butoanele de jos ca să adaugi straturi, pe rând. Dă zoom pe clădiri și înclină harta.");
+      log("Apasă „+ Landmarks”, apoi „+ Roofs”. Dă zoom pe clădiri și înclină harta.");
     }catch(e){log("Pluginul nu a mers: "+(e&&e.message||e),"e")}
   });
-  document.getElementById("br").onclick=e=>{
-    replace=!replace;e.target.textContent="Clădirile hărții: "+(replace?"ascunse":"rămân");
-    log("Se aplică la următorul strat „Landmarks” adăugat (scoate-l și adaugă-l din nou).");
-  };
-  document.getElementById("bl").onclick=()=>{
-    navigator.geolocation.getCurrentPosition(p=>map.jumpTo({center:[p.coords.longitude,p.coords.latitude],zoom:17.5,pitch:64}),
-      er=>log("Locație: "+er.message,"e"),{enableHighAccuracy:true,timeout:10000});
-  };
+  document.getElementById("bl").onclick=()=>navigator.geolocation.getCurrentPosition(
+    p=>map.jumpTo({center:[p.coords.longitude,p.coords.latitude],zoom:17.5,pitch:64}),er=>log("Locație: "+er.message,"e"),{enableHighAccuracy:true,timeout:10000});
   document.getElementById("bh").onclick=e=>{const h=logEl.style.display==="none";logEl.style.display=h?"":"none";e.target.textContent=h?"Ascunde log":"Arată log"};
-}
+})();
 </script>
 </body>
 </html>
