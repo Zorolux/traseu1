@@ -365,7 +365,7 @@ h1{font-size:28px}
       <div class="opt"><h3>Stil hartă</h3><div class="chips" id="cm"><button class="pill" data-v="google">Google</button><button class="pill" data-v="waze">Waze</button><button class="pill" data-v="classic">Clasic</button></div><div class="m" style="margin-top:6px">Stilurile sunt inspirate din aplicațiile respective, nu copii exacte.</div></div>
       <div class="opt"><h3>Temă</h3><div class="chips" id="ct"><button class="pill" data-v="sys">Sistem</button><button class="pill" data-v="light">Zi</button><button class="pill" data-v="dark">Noapte</button><button class="pill" data-v="time">După oră</button></div><div class="m" style="margin-top:6px">„După oră”: noapte între 19:00 și 07:00.</div></div>
       <div class="opt"><h3>Ajutor</h3><button class="btn l" id="gd">Vezi ghidul</button><button class="btn l" id="rm" style="color:var(--r)">Șterge toate datele</button></div>
-      <div class="m" style="text-align:center;margin-top:12px">Hartă: © OpenStreetMap · OpenFreeMap · MapLibre<br>Versiune: 11 nov · g (semne + sensuri unice)</div>
+      <div class="m" style="text-align:center;margin-top:12px">Hartă: © OpenStreetMap · OpenFreeMap · MapLibre<br>Versiune: 11 nov · h (șosele + clădiri + umbre)</div>
     </div>
     <div class="vw" id="v-ob" hidden>
       <h2>Bine ai venit 👋</h2>
@@ -681,12 +681,34 @@ function bldExprs(dark){
   const top=["max",["-",h,.45],["+",mh,.1]];
   return{h,mh,wall,roof:dark?roofDark:roofLight,top,roofTop:["max",h,["+",mh,.2]]}
 }
+/* șosele: lățimi pe clase, contur (casing) mai gros, capete rotunjite */
+function styleRoads(){
+  const W={mw:[[6,1],[12,4],[15,9],[18,26]],ar:[[8,.5],[12,2.4],[15,7],[18,22]],mi:[[12,.7],[14,2.4],[16,6],[18,17]],sv:[[14,.8],[16,3],[18,9]]};
+  const ex=(a,add)=>{const o=["interpolate",["exponential",1.4],["zoom"]];a.forEach(([z,w])=>o.push(z,w+add));return o};
+  gm.getStyle().layers.forEach(l=>{
+    if(l.type!=="line")return;
+    const id=l.id.toLowerCase();
+    if(/^(rt|nrt|ndone|pts|cl|sel|stops|me|ow|sg|sp)-/.test(id))return;
+    if(l["source-layer"]!=="transportation"&&!/road|highway|motorway|trunk|primary|secondary|tertiary|minor|service|street/.test(id))return;
+    if(/rail|transit|path|pedestrian|footway|track|cycle|steps|oneway|arrow|name|label|aeroway|ferry|boundary|water/.test(id))return;
+    const c=/motorway|trunk/.test(id)?"mw":/primary|secondary|tertiary/.test(id)?"ar":/service/.test(id)?"sv":"mi";
+    const cs=/casing|case|outline/.test(id);
+    try{gm.setPaintProperty(l.id,"line-width",ex(W[c],cs?2.4:0))}catch(e){}
+    try{gm.setLayoutProperty(l.id,"line-cap","round");gm.setLayoutProperty(l.id,"line-join","round")}catch(e){}
+  });
+}
 function styleBuildings(){
   if(!gm)return;const dark=isDark(),E=bldExprs(dark);
   try{if(gm.getLayer("b3d-roof"))gm.removeLayer("b3d-roof")}catch(e){}
+  try{if(gm.getLayer("b3d-sh"))gm.removeLayer("b3d-sh")}catch(e){}
   const L=gm.getStyle().layers,bi=L.findIndex(l=>l.type==="fill-extrusion");
   if(bi>=0){
     const base=L[bi],before=L[bi+1]&&L[bi+1].id;let roofOk=false;
+    if(cfg.map!=="classic"&&cfg.earth!=="1"){
+      const sh={id:"b3d-sh",type:"fill",source:base.source,"source-layer":base["source-layer"],minzoom:15,paint:{"fill-color":dark?"#000000":"#3a2f25","fill-opacity":dark?.38:.2,"fill-translate-anchor":"map","fill-translate":["interpolate",["linear"],["zoom"],15,["literal",[1,1.5]],19,["literal",[9,11]]]}};
+      if(base.filter)sh.filter=base.filter;
+      try{gm.addLayer(sh,base.id)}catch(e){try{sh.paint["fill-translate"]=[4,5];gm.addLayer(sh,base.id)}catch(e2){}}
+    }
     try{
       const ly={id:"b3d-roof",type:"fill-extrusion",source:base.source,"source-layer":base["source-layer"],minzoom:15,
         paint:{"fill-extrusion-color":E.roof,"fill-extrusion-base":E.top,"fill-extrusion-height":E.roofTop,"fill-extrusion-opacity":.98,"fill-extrusion-vertical-gradient":true}};
@@ -697,6 +719,7 @@ function styleBuildings(){
     if(roofOk)P["fill-extrusion-height"]=E.top;
     Object.keys(P).forEach(k=>{try{gm.setPaintProperty(base.id,k,P[k])}catch(e){}});
   }
+  if(cfg.map!=="classic"&&cfg.earth!=="1")try{styleRoads()}catch(e){}
   try{gm.setLight({anchor:"viewport",color:dark?"#9fb4d6":"#fff1d9",intensity:dark?.35:.62,position:[1.4,205,52]})}catch(e){}
 }
 const isDark=()=>{const t=document.documentElement.getAttribute("data-theme");return t?t==="dark":matchMedia("(prefers-color-scheme: dark)").matches};
