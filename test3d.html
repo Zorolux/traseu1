@@ -43,7 +43,12 @@ addEventListener("unhandledrejection",e=>log("Eroare (promisiune): "+((e.reason&
 (async()=>{
   if(typeof maplibregl==="undefined"||typeof pmtiles==="undefined"){log("MapLibre sau PMTiles nu s-au încărcat (internet / blocant de conținut).","e");return}
   let bm;try{bm=await import(BASEMAPS_URL)}catch(e){log("Nu pot încărca stilul Protomaps: "+e.message,"e");return}
-  const key=new URLSearchParams(location.search).get("key");
+  let key=(new URLSearchParams(location.search).get("key")||"").trim();
+  if(key){
+    try{const r=await fetch("https://api.protomaps.com/tiles/v4.json?key="+encodeURIComponent(key));
+      if(!r.ok){log("Cheia Protomaps a fost refuzată (HTTP "+r.status+"). Folosesc harta publică în loc.","e");key=""}}
+    catch(e){log("Cheia nu poate fi folosită de pe acest domeniu (restricție de domeniu/CORS). Folosesc harta publică în loc.","e");key=""}
+  }
   const protocol=new pmtiles.Protocol();maplibregl.addProtocol("pmtiles",protocol.tile);
   async function findBuild(){
     const d=Date.now();
@@ -64,7 +69,9 @@ addEventListener("unhandledrejection",e=>log("Eroare (promisiune): "+((e.reason&
     sprite:"https://protomaps.github.io/basemaps-assets/sprites/v4/light",
     sources:{protomaps:src},
     layers:bm.layers("protomaps",bm.namedFlavor("light"),{lang:"en"})};
-  const map=new maplibregl.Map({container:"map",style,center:[28.6383,44.1733],zoom:17,pitch:62,bearing:20,maxPitch:75,attributionControl:{compact:true}});
+  let useStyle=style;
+  if(!key&&!pm){log("Protomaps indisponibil de pe acest domeniu. Trec pe OpenFreeMap (fără cheie), cu clădiri 3D.","e");useStyle="https://tiles.openfreemap.org/styles/liberty"}
+  const map=new maplibregl.Map({container:"map",style:useStyle,center:[28.6383,44.1733],zoom:17,pitch:62,bearing:20,maxPitch:75,attributionControl:{compact:true}});
   window.map=map;let api=null;const added={};
   map.on("error",e=>{const m=(e&&e.error&&e.error.message)||"";if(m)log("Hartă: "+m.slice(0,160),"e")});
   const has=id=>!!map.getLayer(id);
@@ -80,6 +87,10 @@ addEventListener("unhandledrejection",e=>log("Eroare (promisiune): "+((e.reason&
   }
   function removeLayer(name,btn){try{map.removeLayer(added[name]);delete added[name];btn.classList.remove("on");log("− "+name+" scos.")}catch(e){log(name+": "+e.message,"e")}}
   map.on("load",async()=>{
+    if(useStyle!==style){
+      try{if(!map.getStyle().layers.some(l=>l.type==="fill-extrusion"))map.addLayer({id:"b3d",type:"fill-extrusion",source:"openmaptiles","source-layer":"building",minzoom:14,paint:{"fill-extrusion-color":"#d9d6cf","fill-extrusion-height":["coalesce",["get","render_height"],8],"fill-extrusion-base":["coalesce",["get","render_min_height"],0],"fill-extrusion-opacity":.9}});
+        log("OpenFreeMap încărcat, clădiri 3D active.","ok")}catch(e){log("3D: "+e.message,"e")}
+    }
     log("Harta s-a încărcat. Straturi „buildings”: "+(has("buildings")?"da":"NU")+", „pois”: "+(has("pois")?"da":"NU"),"ok");
     try{
       api=await import(PLUGIN_URL);
