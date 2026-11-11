@@ -359,12 +359,13 @@ h1{font-size:28px}
       <h2>Setări</h2>
       <div class="opt"><h3>Unități</h3><div class="chips" id="cu"><button class="pill" data-v="km">Kilometri</button><button class="pill" data-v="mi">Mile</button></div></div>
       <div class="opt"><h3>Limită de viteză și alertă</h3><div class="chips" id="cs"><button class="pill" data-v="1">Pornită</button><button class="pill" data-v="0">Oprită</button></div><div class="m" style="margin-top:6px">Limita vine din OpenStreetMap și poate lipsi sau fi greșită. Respectă mereu semnele de circulație.</div></div>
+      <div class="opt"><h3>Semne și sensuri unice pe hartă</h3><div class="chips" id="csg"><button class="pill" data-v="1">Pornit</button><button class="pill" data-v="0">Oprit</button></div><div class="m" style="margin-top:6px">Săgeți albastre pe străzile cu sens unic, STOP, cedează trecerea, semafoare, treceri de pietoni, camere de viteză, limitatoare și limite de viteză. Datele vin în timp real din OpenStreetMap și apar de la zoom 16. <span id="sgt"></span></div></div>
       <div class="opt"><h3>Voce în navigare</h3><div class="chips" id="cv"><button class="pill" data-v="1">Pornită</button><button class="pill" data-v="0">Oprită</button></div></div>
       <div class="opt"><h3>Retur la start la hărți noi</h3><div class="chips" id="cr"><button class="pill" data-v="1">Da</button><button class="pill" data-v="0">Nu</button></div></div>
       <div class="opt"><h3>Stil hartă</h3><div class="chips" id="cm"><button class="pill" data-v="google">Google</button><button class="pill" data-v="waze">Waze</button><button class="pill" data-v="classic">Clasic</button></div><div class="m" style="margin-top:6px">Stilurile sunt inspirate din aplicațiile respective, nu copii exacte.</div></div>
       <div class="opt"><h3>Temă</h3><div class="chips" id="ct"><button class="pill" data-v="sys">Sistem</button><button class="pill" data-v="light">Zi</button><button class="pill" data-v="dark">Noapte</button><button class="pill" data-v="time">După oră</button></div><div class="m" style="margin-top:6px">„După oră”: noapte între 19:00 și 07:00.</div></div>
       <div class="opt"><h3>Ajutor</h3><button class="btn l" id="gd">Vezi ghidul</button><button class="btn l" id="rm" style="color:var(--r)">Șterge toate datele</button></div>
-      <div class="m" style="text-align:center;margin-top:12px">Hartă: © OpenStreetMap · OpenFreeMap · MapLibre<br>Versiune: 11 nov · f (acoperișuri + culori)</div>
+      <div class="m" style="text-align:center;margin-top:12px">Hartă: © OpenStreetMap · OpenFreeMap · MapLibre<br>Versiune: 11 nov · g (semne + sensuri unice)</div>
     </div>
     <div class="vw" id="v-ob" hidden>
       <h2>Bine ai venit 👋</h2>
@@ -706,7 +707,7 @@ function recolor(){
     const id=l.id.toLowerCase(),sl=(l["source-layer"]||"").toLowerCase();
     const set=(k,v)=>{try{gm.setPaintProperty(l.id,k,v)}catch(e){}};
     if(l.id==="pts-l"||l.id==="sel-l"){set("text-color",P.tx);set("text-halo-color",P.halo);return}
-    if(/^(rt|nrt|ndone|pts|cl|sel|stops|me)-/.test(l.id))return;
+    if(/^(rt|nrt|ndone|pts|cl|sel|stops|me|ow|sg|sp)-/.test(l.id))return;
     if(l.id==="b3d"||l.type==="fill-extrusion")return;
     if(l.type==="background")set("background-color",P.bg);
     else if(l.type==="fill"){
@@ -738,7 +739,7 @@ function revertEarth(msg){
 function applyEarth(){
   try{
     gm.addSource("sat",{type:"raster",tiles:["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],tileSize:256,maxzoom:19,attribution:"Imagini © Esri, Maxar, Earthstar Geographics"});
-    const L0=gm.getStyle().layers,mine=/^(rt|nrt|ndone|pts|cl|sel|stops|me)-/,first=L0.find(l=>l.type!=="background");
+    const L0=gm.getStyle().layers,mine=/^(rt|nrt|ndone|pts|cl|sel|stops|me|ow|sg|sp)-/,first=L0.find(l=>l.type!=="background");
     gm.addLayer({id:"sat-r",type:"raster",source:"sat"},first&&first.id);
     L0.forEach(l=>{
       if(mine.test(l.id)||l.id==="sat-r"||l.type==="background")return;
@@ -748,6 +749,7 @@ function applyEarth(){
   }catch(e){}
 }
 function applyMapStyle(){
+  try{sgVis()}catch(e){}
   document.documentElement.dataset.ms=cfg.earth==="1"?"earth":cfg.map;
   if(!gm||!gmReady||cfg.earth==="1")return;
   if(cfg.map==="classic"){if(recolored){recolored=false;gmReady=false;gm.setStyle(STYLE)}}
@@ -781,12 +783,16 @@ function initMap(){
       gm.addLayer({id:"stops-c",type:"circle",source:"stops",paint:{"circle-radius":14,"circle-color":"#007aff","circle-stroke-color":"#ffffff","circle-stroke-width":3}});
       gm.addLayer({id:"stops-n",type:"symbol",source:"stops",layout:{"text-field":["get","n"],"text-font":ff,"text-size":13,"text-allow-overlap":true,"text-ignore-placement":true},paint:{"text-color":"#ffffff"}});
       gm.addLayer({id:"me-d",type:"circle",source:"me",paint:{"circle-radius":8,"circle-color":"#007aff","circle-stroke-color":"#ffffff","circle-stroke-width":3}});
+      try{addSg(ff)}catch(e){toast("Semne: "+e.message,8000)}
       const ea=cfg.earth==="1";recolored=!ea&&cfg.map!=="classic";if(recolored)recolor();if(ea)applyEarth();else styleBuildings();
       gmReady=true;
       if(typeof nav!=="undefined"&&nav.on&&nav.geo.length){gm.getSource("nrt").setData(rtData());["rt-c","rt-l"].forEach(id=>{try{gm.setLayoutProperty(id,"visibility","none")}catch(e){}})}
       const q=pend||lastDraw;pend=null;if(q)drawMap(q[0],q[1]);
     }catch(e){toast("Eroare straturi hartă: "+e.message,15000);gmReady=true}});
     ["pts-h","sel-c"].forEach(id=>gm.on("click",id,e=>{if(e.features&&e.features.length)openPc(e.features[0].properties.i,true)}));
+    gm.on("moveend",()=>{clearTimeout(sgT);sgT=setTimeout(sgFetch,700)});
+    ["sg-i","sg-c"].forEach(id=>gm.on("click",id,e=>{const f=e.features&&e.features[0];if(f)toast(SGNAME[f.properties.k]||"Semn",3500)}));
+    gm.on("click","sp-c",e=>{const f=e.features&&e.features[0];if(f)toast("Limită de viteză: "+f.properties.v+" km/h",3500)});
     gm.on("click","cl-c",e=>{gm.easeTo({center:e.features[0].geometry.coordinates,zoom:gm.getZoom()+2.2})});
     gm.on("click",e=>{const f=gm.queryRenderedFeatures(e.point,{layers:["pts-h","sel-c","cl-c"]});if(!f.length)closePc()});
     
@@ -1056,13 +1062,90 @@ $("mx").onclick=()=>{const c=$("mapc").classList.toggle("fs");$("mx").textConten
 paintNav();
 
 document.addEventListener("visibilitychange",async()=>{if(nav.on&&!document.hidden){try{nav.wl=await navigator.wakeLock.request("screen")}catch(e){}}});
+/* ---------- semne de circulație și sensuri unice (OpenStreetMap / Overpass, date în timp real) ---------- */
+let sgData={s:EMPTY,o:EMPTY,p:EMPTY},sgBox=null,sgT=0,sgAbort=null;
+const SGNAME={stop:"STOP",give_way:"Cedează trecerea",traffic_signals:"Semafor",crossing:"Trecere de pietoni",speed_camera:"Cameră de viteză",calming:"Limitator de viteză / prag"};
+const SGEP=["https://overpass-api.de/api/interpreter","https://overpass.kumi.systems/api/interpreter"];
+function sgRR(x,a,b,w,h,r){x.beginPath();x.moveTo(a+r,b);x.arcTo(a+w,b,a+w,b+h,r);x.arcTo(a+w,b+h,a,b+h,r);x.arcTo(a,b+h,a,b,r);x.arcTo(a,b,a+w,b,r);x.closePath()}
+function sgImages(){
+  const add=(n,d)=>{if(gm.hasImage(n))return;const c=document.createElement("canvas");c.width=c.height=64;const x=c.getContext("2d");d(x);gm.addImage(n,x.getImageData(0,0,64,64),{pixelRatio:2})};
+  add("sg-arrow",x=>{x.translate(32,32);x.beginPath();x.moveTo(-20,-11);x.lineTo(2,-11);x.lineTo(2,-21);x.lineTo(24,0);x.lineTo(2,21);x.lineTo(2,11);x.lineTo(-20,11);x.closePath();x.lineJoin="round";x.lineWidth=7;x.strokeStyle="#fff";x.stroke();x.fillStyle="#1e63c6";x.fill()});
+  add("sg-stop",x=>{x.translate(32,32);x.beginPath();for(let i=0;i<8;i++){const a=Math.PI/8+i*Math.PI/4;x.lineTo(Math.cos(a)*29,Math.sin(a)*29)}x.closePath();x.fillStyle="#d32f2f";x.fill();x.lineWidth=4;x.strokeStyle="#fff";x.stroke();x.fillStyle="#fff";x.font="bold 17px -apple-system,Arial,sans-serif";x.textAlign="center";x.textBaseline="middle";x.fillText("STOP",0,1)});
+  add("sg-yield",x=>{x.beginPath();x.moveTo(6,10);x.lineTo(58,10);x.lineTo(32,57);x.closePath();x.fillStyle="#fff";x.fill();x.lineWidth=8;x.lineJoin="round";x.strokeStyle="#d32f2f";x.stroke()});
+  add("sg-lights",x=>{sgRR(x,17,3,30,58,8);x.fillStyle="#2b2b2e";x.fill();x.lineWidth=3;x.strokeStyle="#fff";x.stroke();[["#e53935",17],["#fbc02d",32],["#43a047",47]].forEach(([c,y])=>{x.beginPath();x.arc(32,y,6.5,0,7);x.fillStyle=c;x.fill()})});
+  add("sg-cross",x=>{sgRR(x,5,5,54,54,10);x.fillStyle="#1565c0";x.fill();x.lineWidth=3;x.strokeStyle="#fff";x.stroke();x.fillStyle="#fff";for(let i=0;i<4;i++)x.fillRect(14+i*10,16,5,32)});
+  add("sg-cam",x=>{sgRR(x,5,5,54,54,10);x.fillStyle="#fff";x.fill();x.lineWidth=5;x.strokeStyle="#d32f2f";x.stroke();x.font="28px -apple-system,Arial,sans-serif";x.textAlign="center";x.textBaseline="middle";x.fillText("📷",32,34)});
+  add("sg-bump",x=>{x.beginPath();x.moveTo(32,6);x.lineTo(59,56);x.lineTo(5,56);x.closePath();x.fillStyle="#fff";x.fill();x.lineWidth=7;x.lineJoin="round";x.strokeStyle="#d32f2f";x.stroke();x.fillStyle="#111";x.font="bold 26px -apple-system,Arial,sans-serif";x.textAlign="center";x.textBaseline="middle";x.fillText("!",32,38)});
+}
+function addSg(ff){
+  sgImages();
+  gm.addSource("ow",{type:"geojson",data:sgData.o});gm.addSource("sg",{type:"geojson",data:sgData.s});gm.addSource("sp",{type:"geojson",data:sgData.p});
+  const vis=cfg.sg==="0"?"none":"visible",NC=["!=",["get","k"],"crossing"];
+  gm.addLayer({id:"ow-a",type:"symbol",source:"ow",minzoom:15.5,layout:{"symbol-placement":"line","symbol-spacing":85,"icon-image":"sg-arrow","icon-size":["interpolate",["linear"],["zoom"],15.5,.34,19,.58],"icon-rotation-alignment":"map","icon-pitch-alignment":"map","icon-allow-overlap":true,"icon-ignore-placement":true,visibility:vis}},"rt-c");
+  gm.addLayer({id:"sg-c",type:"symbol",source:"sg",minzoom:17,filter:["==",["get","k"],"crossing"],layout:{"icon-image":["get","i"],"icon-size":["interpolate",["linear"],["zoom"],17,.34,19,.5],"icon-allow-overlap":false,"icon-padding":3,visibility:vis}},"cl-c");
+  gm.addLayer({id:"sp-c",type:"circle",source:"sp",minzoom:16,layout:{visibility:vis},paint:{"circle-radius":["interpolate",["linear"],["zoom"],16,9,19,15],"circle-color":"#ffffff","circle-stroke-color":"#d32f2f","circle-stroke-width":["interpolate",["linear"],["zoom"],16,2.5,19,4]}},"cl-c");
+  gm.addLayer({id:"sp-n",type:"symbol",source:"sp",minzoom:16,layout:{"text-field":["get","v"],"text-font":ff,"text-size":["interpolate",["linear"],["zoom"],16,10,19,15],"text-allow-overlap":true,"text-ignore-placement":true,visibility:vis},paint:{"text-color":"#111111"}},"cl-c");
+  gm.addLayer({id:"sg-i",type:"symbol",source:"sg",minzoom:16,filter:NC,layout:{"icon-image":["get","i"],"icon-size":["interpolate",["linear"],["zoom"],16,.4,19,.64],"icon-allow-overlap":true,"icon-padding":2,visibility:vis}},"cl-c");
+  setTimeout(sgFetch,400);
+}
+function sgVis(){
+  if(!gm||!gmReady)return;
+  ["ow-a","sg-i","sg-c","sp-c","sp-n"].forEach(id=>{if(gm.getLayer(id))gm.setLayoutProperty(id,"visibility",cfg.sg==="0"?"none":"visible")});
+  if(cfg.sg!=="0")sgFetch();
+}
+async function sgFetch(){
+  if(!gm||!gmReady||cfg.sg==="0"||gm.getZoom()<15.5||!gm.getSource("ow"))return;
+  const b=gm.getBounds(),w=b.getWest(),s0=b.getSouth(),e=b.getEast(),n=b.getNorth();
+  if(sgBox&&w>=sgBox[0]&&s0>=sgBox[1]&&e<=sgBox[2]&&n<=sgBox[3])return;
+  const px=(e-w)*.35,py=(n-s0)*.35,bb=[w-px,s0-py,e+px,n+py];
+  if(bb[2]-bb[0]>.05||bb[3]-bb[1]>.05)return;
+  const bx=bb[1].toFixed(5)+","+bb[0].toFixed(5)+","+bb[3].toFixed(5)+","+bb[2].toFixed(5);
+  const q='[out:json][timeout:25];('
+    +'way[highway][oneway~"^(yes|-1|true|1)$"]('+bx+');'
+    +'way[highway][junction=roundabout]('+bx+');'
+    +'way[highway][maxspeed][highway!~"^(footway|path|steps|cycleway|pedestrian|track|bridleway|service)$"]('+bx+');'
+    +'node[highway~"^(stop|give_way|traffic_signals|speed_camera|crossing)$"]('+bx+');'
+    +'node[traffic_calming]('+bx+');node[enforcement=maxspeed]('+bx+');'
+    +');out tags geom;';
+  try{sgAbort&&sgAbort.abort()}catch(x){}
+  const ac=sgAbort=new AbortController(),tm=setTimeout(()=>ac.abort(),20000);
+  let j=null;
+  for(const ep of SGEP){
+    try{const r=await fetch(ep,{method:"POST",body:"data="+encodeURIComponent(q),signal:ac.signal});if(r.ok){j=await r.json();break}}catch(x){if(ac.signal.aborted)break}
+  }
+  clearTimeout(tm);
+  if(!j||!j.elements){if(!ac.signal.aborted&&!sgFetch.w){sgFetch.w=1;toast("Semnele și sensurile unice nu s-au putut încărca acum (serverul OpenStreetMap nu răspunde).",6000)}return}
+  const ow=[],sg=[],sp=[];
+  j.elements.forEach(el=>{
+    const t=el.tags||{};
+    if(el.type==="node"){
+      let k=null,i=null;
+      if(t.highway==="stop"){k="stop";i="sg-stop"}
+      else if(t.highway==="give_way"){k="give_way";i="sg-yield"}
+      else if(t.highway==="traffic_signals"){k="traffic_signals";i="sg-lights"}
+      else if(t.highway==="speed_camera"||t.enforcement==="maxspeed"){k="speed_camera";i="sg-cam"}
+      else if(t.traffic_calming){k="calming";i="sg-bump"}
+      else if(t.highway==="crossing"){k="crossing";i="sg-cross"}
+      if(k&&typeof el.lon==="number")sg.push(pt([el.lon,el.lat],{k,i}));
+    }else if(el.type==="way"&&el.geometry&&el.geometry.length>1){
+      let co=el.geometry.map(g=>[g.lon,g.lat]);
+      const rb=t.junction==="roundabout",one=/^(yes|true|1)$/.test(t.oneway||""),rev=t.oneway==="-1";
+      if(one||rev||rb){if(rev)co=co.slice().reverse();ow.push(LN(co))}
+      const v=parseLimit(t.maxspeed);
+      if(v&&!/^(footway|path|steps|cycleway|pedestrian|track|bridleway|service)$/.test(t.highway||"")){sp.push(pt(co[Math.floor(co.length/2)],{v:String(v)}))}
+    }
+  });
+  sgData={s:FC(sg),o:FC(ow),p:FC(sp)};sgBox=bb;
+  try{gm.getSource("ow").setData(sgData.o);gm.getSource("sg").setData(sgData.s);gm.getSource("sp").setData(sgData.p)}catch(x){}
+  try{const ts=j.osm3s&&j.osm3s.timestamp_osm_base;const el=$("sgt");if(ts&&el)el.textContent="Ultima actualizare a datelor OSM: "+new Date(ts).toLocaleString("ro-RO")+"."}catch(x){}
+}
 /* ---------- setări ---------- */
-let cfg={units:"km",voice:"1",rt:"0",theme:"sys",map:"google",sl:"1",earth:"0"};try{Object.assign(cfg,JSON.parse(localStorage.getItem("traseu_cfg")||"{}"))}catch(e){}
+let cfg={units:"km",voice:"1",rt:"0",theme:"sys",map:"google",sl:"1",sg:"1",earth:"0"};try{Object.assign(cfg,JSON.parse(localStorage.getItem("traseu_cfg")||"{}"))}catch(e){}
 cfg.earth="0";
 function applyTheme(){const R=document.documentElement,t=cfg.theme,h=new Date().getHours();
   if(t==="sys")R.removeAttribute("data-theme");else R.setAttribute("data-theme",t==="time"?(h>=19||h<7?"dark":"light"):t);applyMapStyle()}
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>applyMapStyle());
-function paintCfg(){[["cu","units"],["cs","sl"],["cv","voice"],["cr","rt"],["ct","theme"],["cm","map"]].forEach(([id,k])=>document.querySelectorAll("#"+id+" .pill").forEach(b=>{
+function paintCfg(){[["cu","units"],["cs","sl"],["csg","sg"],["cv","voice"],["cr","rt"],["ct","theme"],["cm","map"]].forEach(([id,k])=>document.querySelectorAll("#"+id+" .pill").forEach(b=>{
   b.classList.toggle("on",b.dataset.v===cfg[k]);
   b.onclick=()=>{cfg[k]=b.dataset.v;try{localStorage.setItem("traseu_cfg",JSON.stringify(cfg))}catch(e){}paintCfg();applyTheme();applyMapStyle();const m=M();if(m)render()}}))}
 setInterval(applyTheme,600000);
