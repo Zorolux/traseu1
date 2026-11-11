@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Test plugin 3D</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<style>
+html,body{margin:0;height:100%;background:#f2f2f7;font:15px -apple-system,system-ui,sans-serif}
+#map{position:fixed;inset:0}
+#log{position:fixed;left:8px;right:8px;top:calc(env(safe-area-inset-top,0px) + 8px);max-height:34vh;overflow:auto;background:rgba(255,255,255,.92);border-radius:14px;padding:8px 12px;font-size:12.5px;line-height:1.4;z-index:5;white-space:pre-wrap;word-break:break-word}
+#log .e{color:#c62828;font-weight:600}
+#log .ok{color:#1b7f3b}
+#bar{position:fixed;left:8px;right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 10px);display:flex;gap:8px;z-index:5}
+#bar button{flex:1;border:0;border-radius:14px;padding:12px 6px;font-size:15px;font-weight:600;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div id="log"></div>
+<div id="bar">
+  <button id="bl">📍 Locația mea</button>
+  <button id="bp">Plugin: pornit</button>
+  <button id="bh">Ascunde log</button>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script>
+/* Cum funcționează: harta (OpenFreeMap) se încarcă normal; apoi pluginul maplibre-landmarks
+   se încarcă de pe CDN și se adaugă ca strat. Orice eroare apare scrisă în caseta de sus. */
+const PLUGIN_URL="https://cdn.jsdelivr.net/npm/maplibre-landmarks/+esm";
+const logEl=document.getElementById("log");
+function log(t,c){const d=document.createElement("div");if(c)d.className=c;d.textContent=t;logEl.appendChild(d);logEl.scrollTop=logEl.scrollHeight}
+addEventListener("error",e=>log("Eroare: "+(e.message||e.type),"e"));
+addEventListener("unhandledrejection",e=>log("Eroare (promisiune): "+((e.reason&&e.reason.message)||e.reason),"e"));
+
+if(typeof maplibregl==="undefined"){log("MapLibre nu s-a încărcat (internet sau blocant de conținut).","e")}
+else{
+  const map=new maplibregl.Map({container:"map",style:"https://tiles.openfreemap.org/styles/liberty",
+    center:[28.6383,44.1733],zoom:17.2,pitch:62,bearing:20,maxPitch:75,attributionControl:{compact:true}});
+  window.map=map;
+  let layer=null,on=true,api=null;
+  map.on("error",e=>{const m=(e&&e.error&&e.error.message)||"";if(m)log("Hartă: "+m.slice(0,160),"e")});
+  map.on("load",async()=>{
+    log("Harta s-a încărcat.","ok");
+    const L=map.getStyle().layers.map(l=>l.id);
+    log("Straturi de clădiri: "+L.filter(i=>/build/i.test(i)).join(", "));
+    try{
+      log("Încarc pluginul…");
+      api=await import(PLUGIN_URL);
+      log("Plugin încărcat. Export-uri: "+Object.keys(api).slice(0,12).join(", "),"ok");
+      const before=(map.getStyle().layers.find(l=>l.type==="symbol")||{}).id;
+      const repl=L.filter(i=>/building/i.test(i));
+      layer=new api.LandmarksLayer({id:"landmarks",replaceBuildings:repl});
+      map.addLayer(layer,before);
+      if(api.setTheme)api.setTheme(map,"day");
+      log("Strat adăugat (înlocuiește: "+repl.join(", ")+"). Dă zoom pe o zonă cu clădiri și înclină harta.","ok");
+    }catch(e){log("Pluginul nu a mers: "+(e&&e.message||e),"e")}
+  });
+  document.getElementById("bp").onclick=e=>{
+    if(!layer){log("Pluginul nu e încărcat.","e");return}
+    on=!on;try{map.setLayoutProperty("landmarks","visibility",on?"visible":"none")}catch(x){log("Nu pot comuta: "+x.message,"e")}
+    e.target.textContent="Plugin: "+(on?"pornit":"oprit");
+  };
+  document.getElementById("bl").onclick=()=>{
+    navigator.geolocation.getCurrentPosition(p=>map.jumpTo({center:[p.coords.longitude,p.coords.latitude],zoom:17.5,pitch:64}),
+      er=>log("Locație: "+er.message,"e"),{enableHighAccuracy:true,timeout:10000});
+  };
+  document.getElementById("bh").onclick=e=>{const h=logEl.style.display==="none";logEl.style.display=h?"":"none";e.target.textContent=h?"Ascunde log":"Arată log"};
+}
+</script>
+</body>
+</html>
