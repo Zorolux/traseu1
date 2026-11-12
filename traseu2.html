@@ -127,6 +127,9 @@ a.stop::after{display:none}
 .nx b{color:var(--a)}
 #nv .nvt,#nv .nvb{position:fixed;left:12px;right:12px;z-index:60;background:var(--glass);-webkit-backdrop-filter:saturate(180%) blur(30px);backdrop-filter:saturate(180%) blur(30px);border-radius:28px;box-shadow:var(--hl),var(--sh)}
 .nvt{top:calc(env(safe-area-inset-top,0px) + 10px);display:flex;gap:14px;align-items:center;padding:14px 18px}
+#arr{position:fixed;left:12px;right:12px;top:calc(env(safe-area-inset-top,0px) + 106px);z-index:59;padding:10px 16px;border-radius:20px;font-weight:700;font-size:15px;text-align:center;background:var(--glass);-webkit-backdrop-filter:saturate(180%) blur(30px);backdrop-filter:saturate(180%) blur(30px);box-shadow:var(--hl),var(--sh)}
+#lastp{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:5;max-width:58%;padding:7px 12px;border-radius:16px;font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:var(--glass);-webkit-backdrop-filter:saturate(180%) blur(30px);backdrop-filter:saturate(180%) blur(30px);box-shadow:var(--hl),var(--sh)}
+#mapc.fs #lastp{display:none}
 #nvi{font-size:44px;line-height:1;color:var(--a);font-weight:700;width:52px;text-align:center}
 #nvd{display:block;font-size:30px;letter-spacing:-.8px}
 #nvx{display:block;color:var(--m);font-size:15px}
@@ -217,6 +220,7 @@ h1{font-size:28px}
  /* navigare */
  #nv .nvt,#nv .nvb{left:calc(env(safe-area-inset-left,0px) + 10px);right:auto;width:min(40vw,340px);border-radius:22px}
  .nvt{top:calc(env(safe-area-inset-top,0px) + 8px);padding:9px 14px;gap:10px}
+#arr{left:calc(env(safe-area-inset-left,0px) + 10px);right:auto;width:min(40vw,340px);top:calc(env(safe-area-inset-top,0px) + 74px)}
  #nvi{font-size:32px;width:38px}
  #nvd{font-size:24px}
  .nvt>div{min-width:0}
@@ -238,7 +242,7 @@ h1{font-size:28px}
 <body>
 <input type="file" id="f" class="hid" accept=".kmz,.kml,application/vnd.google-earth.kmz,application/vnd.google-earth.kml+xml" multiple>
 
-  <div class="mapc" id="mapc" hidden><div id="map"></div><button class="mb" id="mx">⤢</button></div>
+  <div class="mapc" id="mapc" hidden><div id="map"></div><button class="mb" id="mx">⤢</button><div id="lastp" hidden></div></div>
 <div id="rb"><button class="mb" id="f4" hidden>🛰</button><button class="mb" id="f3" hidden>3D</button><button class="mb" id="fab" hidden>📍</button></div>
 <div id="top">
   <div class="hrow">
@@ -301,6 +305,7 @@ h1{font-size:28px}
 
 <div id="nv" hidden>
   <div class="nvt"><span id="nvi">↑</span><div><b id="nvd">—</b><span id="nvx"></span><span id="nvp"></span></div></div>
+  <div id="arr" hidden></div>
   <div id="lim" hidden>50</div>
   <div id="spd"><b>0</b><small>km/h</small></div>
   <div class="nvb"><div><b id="nvn"></b><span id="nvr"></span></div><button id="nvo">⤢</button><button id="n3">3D</button><button id="nvm">🔊</button><button id="nvs">Oprește</button></div>
@@ -365,7 +370,7 @@ h1{font-size:28px}
       <div class="opt"><h3>Stil hartă</h3><div class="chips" id="cm"><button class="pill" data-v="google">Google</button><button class="pill" data-v="waze">Waze</button><button class="pill" data-v="classic">Clasic</button></div><div class="m" style="margin-top:6px">Stilurile sunt inspirate din aplicațiile respective, nu copii exacte.</div></div>
       <div class="opt"><h3>Temă</h3><div class="chips" id="ct"><button class="pill" data-v="sys">Sistem</button><button class="pill" data-v="light">Zi</button><button class="pill" data-v="dark">Noapte</button><button class="pill" data-v="time">După oră</button></div><div class="m" style="margin-top:6px">„După oră”: noapte între 19:00 și 07:00.</div></div>
       <div class="opt"><h3>Ajutor</h3><button class="btn l" id="gd">Vezi ghidul</button><button class="btn l" id="rm" style="color:var(--r)">Șterge toate datele</button></div>
-      <div class="m" style="text-align:center;margin-top:12px">Hartă: © OpenStreetMap · OpenFreeMap · MapLibre<br>Versiune: 11 nov · h (șosele + clădiri + umbre)</div>
+      <div class="m" style="text-align:center;margin-top:12px">Hartă: © OpenStreetMap · OpenFreeMap · MapLibre<br>Versiune: 11 nov · i (ultimul punct atins)</div>
     </div>
     <div class="vw" id="v-ob" hidden>
       <h2>Bine ai venit 👋</h2>
@@ -1060,7 +1065,7 @@ async function onPos(pos){
   const dT0=hav(p,T);nav.stillT=sp<1.2?(nav.stillT||now):0;
   const atEnd=nav.geo.length>1&&!nav.free&&nav.sf>=nav.L-9&&dT0<90;
   if(dT0<16||atEnd||(dT0<30&&nav.stillT&&now-nav.stillT>5000)){
-    nav.busy=1;speak("Ai ajuns la "+(T.name||"punctul de start"));setStart(p.lat,p.lon,"GPS");
+    nav.busy=1;speak("Ai ajuns la "+(T.name||"punctul de start"));reached(T.name);setStart(p.lat,p.lon,"GPS");
     if(nav.single){const ix=m.pts.findIndex(q=>q.lat===T.lat&&q.lon===T.lon&&q.name===T.name);if(ix>=0&&m.sel.has(ix))markDone(m,T);stopNav();return}
     if(T.name)markDone(m,T);clearTimeout(tm);await compute();
     const n=m.last&&m.last.route[1];
@@ -1085,6 +1090,22 @@ $("mx").onclick=()=>{const c=$("mapc").classList.toggle("fs");$("mx").textConten
 paintNav();
 
 document.addEventListener("visibilitychange",async()=>{if(nav.on&&!document.hidden){try{nav.wl=await navigator.wakeLock.request("screen")}catch(e){}}});
+/* ---------- ultimul punct atins ---------- */
+let reachedT=0;
+function showLast(){
+  const el=$("lastp");if(!el)return;
+  let o=null;try{o=JSON.parse(localStorage.getItem("t2last")||"null")}catch(e){}
+  if(!o||!o.n){el.hidden=true;return}
+  const d=new Date(o.t),hh=String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
+  el.textContent="📍 Ultimul punct: "+o.n+" · "+hh;el.hidden=false;
+}
+function reached(name){
+  const n=name||"punctul de start";
+  try{localStorage.setItem("t2last",JSON.stringify({n,t:Date.now()}))}catch(e){}
+  const a=$("arr");if(a){a.textContent="✅ Ai ajuns la: "+n;a.hidden=false;clearTimeout(reachedT);reachedT=setTimeout(()=>{a.hidden=true},25000)}
+  toast("Ai ajuns la: "+n,6000);showLast();
+}
+try{$("lastp").onclick=()=>{$("lastp").hidden=true};showLast()}catch(e){}
 /* ---------- semne de circulație și sensuri unice (OpenStreetMap / Overpass, date în timp real) ---------- */
 let sgData={s:EMPTY,o:EMPTY,p:EMPTY},sgBox=null,sgT=0,sgAbort=null;
 const SGNAME={stop:"STOP",give_way:"Cedează trecerea",traffic_signals:"Semafor",crossing:"Trecere de pietoni",speed_camera:"Cameră de viteză",calming:"Limitator de viteză / prag"};
