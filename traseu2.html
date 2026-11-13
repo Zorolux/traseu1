@@ -276,6 +276,25 @@ h1{font-size:28px}
 #nv #lim{left:auto;right:calc(14px + 78px + 12px + env(safe-area-inset-right,0px));bottom:calc(20px + env(safe-area-inset-bottom,0px));width:64px;height:64px;font-size:24px}
 #arr{top:calc(env(safe-area-inset-top,0px) + 84px)}
 }
+
+/* ===== colțuri mai rotunjite ===== */
+.bdg{margin-left:6px;background:var(--a);color:#fff;border-radius:999px;padding:1px 7px;font-size:11px;font-weight:700}
+.mtag{display:block;font-size:11px;font-weight:700;color:var(--a);margin-top:2px}
+#nv .nvt{border-radius:38px;padding:12px 22px 12px 12px}
+#nvi{border-radius:50%}
+#nv .nvb{border-radius:38px;padding:14px}
+#nv .nvb button{border-radius:999px}
+#nv #spd{width:88px;height:88px;border-radius:50%}
+#nv #lim{left:calc(14px + 88px + 12px);bottom:calc(157px + env(safe-area-inset-bottom,0px))}
+#arr{border-radius:999px;padding:12px 22px}
+#lastp{border-radius:999px;padding:8px 14px}
+@media (orientation:landscape) and (max-height:600px){
+#nv .nvt{border-radius:30px;padding:8px 16px 8px 8px}
+#nv .nvb{border-radius:28px;padding:8px 10px}
+#nv .nvb button{border-radius:999px}
+#nv #spd{width:78px;height:78px;border-radius:50%}
+#nv #lim{left:auto;bottom:calc(20px + env(safe-area-inset-bottom,0px))}
+}
 </style>
 </head>
 <body>
@@ -314,7 +333,7 @@ h1{font-size:28px}
 <div class="wrap" id="main" hidden>
   <div class="card">
     <div class="ct"><b>Alege punctele</b><span class="m" id="cnt"></span></div>
-    <div class="sb"><input type="search" id="q" placeholder="Caută după denumire"></div>
+    <div class="sb"><input type="search" id="q" placeholder="Caută în toate hărțile"></div>
     <div class="chips">
       <button class="pill" id="all">Bifează rezultatele</button>
       <button class="pill" id="none">Șterge selecția</button>
@@ -409,7 +428,7 @@ h1{font-size:28px}
       <div class="opt"><h3>Stil hartă</h3><div class="chips" id="cm"><button class="pill" data-v="google">Google</button><button class="pill" data-v="waze">Waze</button><button class="pill" data-v="classic">Clasic</button></div><div class="m" style="margin-top:6px">Stilurile sunt inspirate din aplicațiile respective, nu copii exacte.</div></div>
       <div class="opt"><h3>Temă</h3><div class="chips" id="ct"><button class="pill" data-v="sys">Sistem</button><button class="pill" data-v="light">Zi</button><button class="pill" data-v="dark">Noapte</button><button class="pill" data-v="time">După oră</button></div><div class="m" style="margin-top:6px">„După oră”: noapte între 19:00 și 07:00.</div></div>
       <div class="opt"><h3>Ajutor</h3><button class="btn l" id="gd">Vezi ghidul</button><button class="btn l" id="rm" style="color:var(--r)">Șterge toate datele</button></div>
-      <div class="m" style="text-align:center;margin-top:12px">Hartă: © OpenStreetMap · OpenFreeMap · MapLibre<br>Versiune: 11 nov · k (ecran de condus nou)</div>
+      <div class="m" style="text-align:center;margin-top:12px">Hartă: © OpenStreetMap · OpenFreeMap · MapLibre<br>Versiune: 11 nov · m (traseu pe toate hărțile)</div>
     </div>
     <div class="vw" id="v-ob" hidden>
       <h2>Bine ai venit 👋</h2>
@@ -486,7 +505,7 @@ $("f").onchange=async ev=>{
 function renderTabs(){
   const t=$("tabs");t.innerHTML="";
   maps.forEach(m=>{
-    const b=document.createElement("button");b.className="tab"+(m.id===cur?" on":"");b.textContent=m.name;
+    const b=document.createElement("button");b.className="tab"+(m.id===cur?" on":"");b.textContent=m.name;if(m.sel.size){const bd=document.createElement("span");bd.className="bdg";bd.textContent=m.sel.size;b.append(bd)}
     b.onclick=()=>{if(cur===m.id)return;cur=m.id;closePc();save();render();plan(300)};
     if(m.id===cur){const x=document.createElement("span");x.className="x";x.textContent="✕";
       x.onclick=e=>{e.stopPropagation();if(confirm("Închid harta „"+m.name+"”?")){maps=maps.filter(k=>k!==m);cur=maps.length?maps[0].id:null;save();render()}};
@@ -502,18 +521,36 @@ function render(){
   const m=M();$("empty").hidden=!!m;$("main").hidden=!m;$("sheet").hidden=!m||!!nav.on;$("mapc").hidden=!m;$("fab").hidden=!m||!!nav.on;$("f4").hidden=$("f3").hidden=!m||!!nav.on;
   if(!m){$("bar").hidden=true;return}
   $("q").value=m.q;setRt(m);
-  const l=$("list");l.innerHTML="";const fl=filtered(m);
-  fl.slice(0,500).forEach(({p,i})=>{
-    const r=document.createElement("label");r.className="it"+(m.sel.has(i)?" s":"");
-    const cb=document.createElement("input");cb.type="checkbox";cb.checked=m.sel.has(i);
-    cb.onchange=()=>{cb.checked?m.sel.add(i):m.sel.delete(i);r.classList.toggle("s",cb.checked);changed()};
-    const s=document.createElement("span");s.textContent=p.name;r.append(cb,s);l.append(r);
-  });
-  if(!fl.length)l.innerHTML='<div class="m" style="padding:14px 6px">Niciun punct găsit.</div>';
+  const l=$("list");l.innerHTML="";const qq=(m.q||"").trim();
+  if(qq){
+    /* căutare generală: toate hărțile deodată, harta curentă prima */
+    const nq=norm(qq),hits=[];
+    [m,...maps.filter(k=>k!==m)].forEach(mm=>mm.pts.forEach((p,i)=>{if(norm(p.name).includes(nq))hits.push({mm,p,i})}));
+    hits.slice(0,500).forEach(({mm,p,i})=>{
+      const r=document.createElement("label");r.className="it"+(mm.sel.has(i)?" s":"");
+      const cb=document.createElement("input");cb.type="checkbox";cb.checked=mm.sel.has(i);
+      cb.onchange=()=>{
+        cb.checked?mm.sel.add(i):mm.sel.delete(i);r.classList.toggle("s",cb.checked);changed()
+      };
+      const s=document.createElement("span");s.textContent=p.name;
+      if(maps.length>1){const t=document.createElement("small");t.className="mtag";t.textContent=mm.name;s.append(t)}
+      r.append(cb,s);l.append(r);
+    });
+    if(!hits.length)l.innerHTML='<div class="m" style="padding:14px 6px">Niciun punct găsit în nicio hartă.</div>';
+  }else{
+    const fl=filtered(m);
+    fl.slice(0,500).forEach(({p,i})=>{
+      const r=document.createElement("label");r.className="it"+(m.sel.has(i)?" s":"");
+      const cb=document.createElement("input");cb.type="checkbox";cb.checked=m.sel.has(i);
+      cb.onchange=()=>{cb.checked?m.sel.add(i):m.sel.delete(i);r.classList.toggle("s",cb.checked);changed()};
+      const s=document.createElement("span");s.textContent=p.name;r.append(cb,s);l.append(r);
+    });
+    if(!fl.length)l.innerHTML='<div class="m" style="padding:14px 6px">Niciun punct găsit.</div>';
+  }
   cnt();showRoute(m,m.last);
 }
-function cnt(){const m=M();$("cnt").textContent=m.sel.size+" din "+m.pts.length+" selectate"}
-function changed(){cnt();save();plan(700)}
+function cnt(){const m=M(),t=maps.reduce((a,k)=>a+k.sel.size,0),n=maps.filter(k=>k.sel.size).length;$("cnt").textContent=m.sel.size+" din "+m.pts.length+" selectate"+(maps.length>1&&t?" · în total "+t+(n>1?" din "+n+" hărți":""):"")}
+function changed(){cnt();renderTabs();save();plan(700)}
 $("q").oninput=()=>{M().q=$("q").value;render()};
 $("all").onclick=()=>{const m=M();filtered(m).forEach(o=>m.sel.add(o.i));render();changed()};
 $("none").onclick=()=>{M().sel.clear();M().done=[];render();changed()};
@@ -556,7 +593,7 @@ async function paintAsk(){
     $("ay").textContent="Da, permite locația";
   }
 }
-$("ay").onclick=async()=>{manual=false;gpsOk=null;const ok=await getLoc(false);paintAsk();if(ok&&M()&&M().sel.size)plan(100);else if(!ok)$("at").textContent+=" — "+$("gm").textContent};
+$("ay").onclick=async()=>{manual=false;gpsOk=null;const ok=await getLoc(false);paintAsk();if(ok&&M()&&anySel())plan(100);else if(!ok)$("at").textContent+=" — "+$("gm").textContent};
 $("an").onclick=()=>openSheet();
 function getLoc(quiet){
   return new Promise(res=>{
@@ -617,7 +654,7 @@ $("ps").oninput=()=>{
     d.onclick=()=>{manual=true;setStart(p.lat,p.lon,"Punct: "+p.name);closeSheet();plan(100)};r.append(d);
   });
 };
-document.addEventListener("visibilitychange",()=>{if(!document.hidden&&M()&&M().sel.size)plan(200)});
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&M()&&anySel())plan(200)});
 
 /* ---------- rutare ---------- */
 const hav=(a,b)=>{const R=6371e3,r=Math.PI/180,dl=(b.lat-a.lat)*r,dn=(b.lon-a.lon)*r;const h=Math.sin(dl/2)**2+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.sqrt(h))};
@@ -645,13 +682,13 @@ async function osrm(list,rt){
 function plan(d){clearTimeout(tm);tm=setTimeout(compute,d)}
 async function compute(){
   const m=M();if(!m)return;const t=++tok;
-  if(!m.sel.size){m.last=null;save();showRoute(m,null);return}
+  if(!anySel()){m.last=null;save();showRoute(m,null);return}
   $("bar").hidden=false;$("sum").innerHTML="<b>⏳ Se calculează traseul…</b>";$("links").innerHTML="";
   await autoLoc();
   if(t!==tok)return;
   if(!start){showRoute(m,null);openSheet();return}
-  const list=[...m.sel].filter(i=>!m.done.includes(i)).map(i=>m.pts[i]);let res;
-  if(!list.length){m.last=null;save();showRoute(m,null);$("bar").hidden=false;$("sum").innerHTML="<b>🎉 Toate opririle sunt terminate</b>";$("links").innerHTML='<button class="go s" id="rs">Resetează progresul</button>';$("rs").onclick=()=>{m.done=[];save();plan(100)};return}
+  const list=[];maps.forEach(mm=>[...mm.sel].filter(i=>!mm.done.includes(i)&&mm.pts[i]).forEach(i=>list.push(mm.pts[i])));let res;
+  if(!list.length){m.last=null;save();showRoute(m,null);$("bar").hidden=false;$("sum").innerHTML="<b>🎉 Toate opririle sunt terminate</b>";$("links").innerHTML='<button class="go s" id="rs">Resetează progresul</button>';$("rs").onclick=()=>{maps.forEach(k=>{k.done=[]});dlog=[];save();plan(100)};return}
   try{if(list.length>99)throw 0;res=await osrm(list,m.rt)}catch(e){res=nearest(list,m.rt)}
   if(t!==tok)return;
   m.last=res;save();if(M()===m)showRoute(m,res);
@@ -687,8 +724,8 @@ function showRoute(m,r){
     if(i===1)a.classList.add("nx");
     res.append(a);
   });
-  const dn=m.done.filter(i=>m.sel.has(i)).length,tot=m.sel.size;
-  $("pgi").style.width=(tot?dn/tot*100:0)+"%";$("pgt").textContent=dn+" din "+tot+" terminate";$("undo").hidden=!m.done.length;
+  const dn=maps.reduce((a,k)=>a+k.done.filter(i=>k.sel.has(i)).length,0),tot=maps.reduce((a,k)=>a+k.sel.size,0);
+  $("pgi").style.width=(tot?dn/tot*100:0)+"%";$("pgt").textContent=dn+" din "+tot+" terminate";$("undo").hidden=!maps.some(k=>k.done.length);
   const L=$("links");L.innerHTML="";
   if(r.route[1]){const g=document.createElement("button");g.className="go";g.style.cssText="width:100%;border:0";g.textContent="▶ Pornește navigarea";g.onclick=startNav;L.append(g)}
   drawMap(m,r);setTimeout(()=>setSnap(snap),0);
@@ -700,8 +737,11 @@ let navApp="google";try{navApp=localStorage.getItem("traseu_nav")||"google"}catc
 function navUrl(p){const ll=p.lat+","+p.lon;return navApp==="waze"?"https://waze.com/ul?ll="+ll+"&navigate=yes":navApp==="apple"?"https://maps.apple.com/?dirflg=d&daddr="+ll:"https://www.google.com/maps/dir/?api=1&travelmode=driving&destination="+ll}
 function paintNav(){document.querySelectorAll("#navp .pill").forEach(b=>b.classList.toggle("on",b.dataset.n===navApp))}
 document.querySelectorAll("#navp .pill").forEach(b=>b.onclick=()=>{navApp=b.dataset.n;try{localStorage.setItem("traseu_nav",navApp)}catch(e){}paintNav();const m=M();if(m&&m.last)showRoute(m,m.last)});
-function markDone(m,p){const i=m.pts.findIndex(q=>q.lat===p.lat&&q.lon===p.lon&&q.name===p.name);if(i>=0&&!m.done.includes(i))m.done.push(i);save();plan(150)}
-$("undo").onclick=()=>{const m=M();if(m){m.done.pop();save();plan(100)}};
+const anySel=()=>maps.some(k=>k.sel.size);
+const owners=p=>{const r=[];maps.forEach(mm=>{const i=mm.pts.findIndex(q=>q.lat===p.lat&&q.lon===p.lon&&q.name===p.name);if(i>=0)r.push({mm,i})});return r};
+let dlog=[];
+function markDone(m,p){owners(p).forEach(({mm,i})=>{if(mm.sel.has(i)&&!mm.done.includes(i)){mm.done.push(i);dlog.push({mm,i})}});save();plan(150)}
+$("undo").onclick=()=>{const e=dlog.pop();if(e){const k=e.mm.done.indexOf(e.i);if(k>=0)e.mm.done.splice(k,1)}else{const m=maps.find(k=>k.done.length);if(m)m.done.pop()}save();plan(100)};
 let gm,gmReady=false,pend=null,lastKey="",lastR=null,gpsAcc=25,lastDraw=null,recolored=false;
 const FC=f=>({type:"FeatureCollection",features:f}),EMPTY=FC([]);
 const pt=(c,p)=>({type:"Feature",properties:p||{},geometry:{type:"Point",coordinates:c}});
@@ -877,6 +917,7 @@ function drawMap0(m,r){
   lastDraw=[m,r];initMap();if(!gm)return;
   if(!gmReady){pend=[m,r];return}
   const un=[],se=[];m.pts.forEach((p,i)=>{const sl=m.sel.has(i),dn=m.done.includes(i);(sl||dn?se:un).push(pt([p.lon,p.lat],{i,n:p.name,d:dn?1:0}))});
+  maps.forEach(mm=>{if(mm!==m)mm.pts.forEach((p,i)=>{const sl=mm.sel.has(i),dn=mm.done.includes(i);if(sl||dn)se.push(pt([p.lon,p.lat],{i:-1,n:p.name,d:dn?1:0}))})});
   gm.getSource("pts").setData(FC(un));gm.getSource("sel").setData(FC(se));
   gm.getSource("rt").setData(r?LN((r.geo||r.route.map(p=>[p.lat,p.lon])).map(c=>[c[1],c[0]])):EMPTY);
   gm.getSource("stops").setData(FC(r?r.route.map((p,i)=>({p,i})).filter(o=>o.i>0&&!(start&&o.p.lat===start.lat&&o.p.lon===start.lon)).map(o=>pt([o.p.lon,o.p.lat],{n:String(o.i)})):[]));
@@ -1111,7 +1152,7 @@ async function onPos(pos){
   const atEnd=nav.geo.length>1&&!nav.free&&nav.sf>=nav.L-9&&dT0<90;
   if(dT0<16||atEnd||(dT0<30&&nav.stillT&&now-nav.stillT>5000)){
     nav.busy=1;speak("Ai ajuns la "+(T.name||"punctul de start"));reached(T.name);setStart(p.lat,p.lon,"GPS");
-    if(nav.single){const ix=m.pts.findIndex(q=>q.lat===T.lat&&q.lon===T.lon&&q.name===T.name);if(ix>=0&&m.sel.has(ix))markDone(m,T);stopNav();return}
+    if(nav.single){if(owners(T).some(o=>o.mm.sel.has(o.i)))markDone(m,T);stopNav();return}
     if(T.name)markDone(m,T);clearTimeout(tm);await compute();
     const n=m.last&&m.last.route[1];
     if(!n){stopNav();speak("Toate opririle sunt terminate");return}
@@ -1298,8 +1339,8 @@ addEventListener("resize",()=>{ORI=LS();setSnap(snap,false);fitTop()});
 /* ---------- pornire ---------- */
 applyTheme();load();render();setSnap("half",false);fitTop();setTimeout(fitTop,400);paintLoc();paintAsk();try{if(!localStorage.getItem("traseu_seen"))setTimeout(()=>openSheet("v-ob"),700)}catch(e){}
 let retried=false;
-document.addEventListener("pointerdown",()=>{if(!retried&&gpsOk===false&&!manual){retried=true;getLoc(true).then(ok=>{if(ok&&M()&&M().sel.size)plan(100)})}},{passive:true});
-autoLoc().then(()=>{if(M()&&M().sel.size)plan(100)});
+document.addEventListener("pointerdown",()=>{if(!retried&&gpsOk===false&&!manual){retried=true;getLoc(true).then(ok=>{if(ok&&M()&&anySel())plan(100)})}},{passive:true});
+autoLoc().then(()=>{if(M()&&anySel())plan(100)});
 </script>
 </body>
 </html>
