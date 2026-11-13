@@ -370,7 +370,7 @@ h1{font-size:28px}
       <div class="opt"><h3>Stil hartă</h3><div class="chips" id="cm"><button class="pill" data-v="google">Google</button><button class="pill" data-v="waze">Waze</button><button class="pill" data-v="classic">Clasic</button></div><div class="m" style="margin-top:6px">Stilurile sunt inspirate din aplicațiile respective, nu copii exacte.</div></div>
       <div class="opt"><h3>Temă</h3><div class="chips" id="ct"><button class="pill" data-v="sys">Sistem</button><button class="pill" data-v="light">Zi</button><button class="pill" data-v="dark">Noapte</button><button class="pill" data-v="time">După oră</button></div><div class="m" style="margin-top:6px">„După oră”: noapte între 19:00 și 07:00.</div></div>
       <div class="opt"><h3>Ajutor</h3><button class="btn l" id="gd">Vezi ghidul</button><button class="btn l" id="rm" style="color:var(--r)">Șterge toate datele</button></div>
-      <div class="m" style="text-align:center;margin-top:12px">Hartă: © OpenStreetMap · OpenFreeMap · MapLibre<br>Versiune: 11 nov · i (ultimul punct atins)</div>
+      <div class="m" style="text-align:center;margin-top:12px">Hartă: © OpenStreetMap · OpenFreeMap · MapLibre<br>Versiune: 11 nov · j (ordine: cel mai apropiat)</div>
     </div>
     <div class="vw" id="v-ob" hidden>
       <h2>Bine ai venit 👋</h2>
@@ -591,11 +591,20 @@ function nearest(list,rt){
   return{route,legs:route.slice(1).map((p,i)=>({distance:hav(route[i],p),duration:null})),dist:d,dur:null,approx:true,geo:route.map(p=>[p.lat,p.lon])};
 }
 async function osrm(list,rt){
-  const all=[start,...list],co=all.map(p=>p.lon+","+p.lat).join(";");
-  const r=await fetch("https://router.project-osrm.org/trip/v1/driving/"+co+"?source=first&roundtrip="+(rt?"true":"false")+(rt?"":"&destination=any")+"&overview=full&geometries=geojson&steps=false");
+  /* ordine: primul punct = cel mai apropiat de start/tine; fiecare următor = cel mai apropiat de punctul precedent (distanță pe șosea, cu rezervă în linie dreaptă) */
+  const all=[start,...list];let D=null;
+  if(all.length<=100){
+    try{const r=await fetch("https://router.project-osrm.org/table/v1/driving/"+all.map(p=>p.lon+","+p.lat).join(";")+"?annotations=distance"),j=await r.json();if(j.code==="Ok"&&j.distances)D=j.distances}catch(e){}
+  }
+  const dd=(i,k)=>{const v=D&&D[i]&&D[i][k];return typeof v==="number"?v:hav(all[i],all[k])*1.3};
+  const left=[];for(let i=1;i<all.length;i++)left.push(i);
+  const ord=[0];let cur=0;
+  while(left.length){let bi=0,bd=Infinity;left.forEach((k,x)=>{const v=dd(cur,k);if(v<bd){bd=v;bi=x}});cur=left.splice(bi,1)[0];ord.push(cur)}
+  const seq=ord.map(i=>all[i]);if(rt)seq.push(start);
+  const r=await fetch("https://router.project-osrm.org/route/v1/driving/"+seq.map(p=>p.lon+","+p.lat).join(";")+"?overview=full&geometries=geojson&steps=false");
   const j=await r.json();if(j.code!=="Ok")throw new Error(j.code);
-  const order=j.waypoints.map((w,i)=>({i,k:w.waypoint_index})).sort((a,b)=>a.k-b.k).map(o=>all[o.i]);
-  return{route:rt?[...order,start]:order,legs:j.trips[0].legs,dist:j.trips[0].distance,dur:j.trips[0].duration,approx:false,geo:simp(j.trips[0].geometry.coordinates)};
+  const t=j.routes[0];
+  return{route:seq,legs:t.legs,dist:t.distance,dur:t.duration,approx:false,geo:simp(t.geometry.coordinates)};
 }
 function plan(d){clearTimeout(tm);tm=setTimeout(compute,d)}
 async function compute(){
