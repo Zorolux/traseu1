@@ -286,6 +286,20 @@ h1{font-size:28px}
 #nv #lim{left:auto;right:calc(14px + 78px + 12px + env(safe-area-inset-right,0px));bottom:calc(22px + env(safe-area-inset-bottom,0px));width:58px;height:58px;font-size:22px}
 #arr{top:calc(env(safe-area-inset-top,0px) + 78px)}
 }
+/* ===== stil Waze: pictogramă de intersecție, nume stradă în cyan, benzi ===== */
+#nv .nvt{flex-wrap:wrap}
+#nvl{flex:1 1 100%;display:flex;justify-content:center;gap:6px;margin:-2px 0 2px}
+#nvl[hidden]{display:none}
+#nvl svg{width:30px;height:30px}
+#nvi{width:68px;height:68px}
+#nvd{font-size:34px}
+#nvx{font-size:25px;font-weight:800;line-height:1.1;margin-top:4px;color:#22d3ee;text-shadow:0 1px 10px rgba(0,0,0,.35)}
+@media (orientation:landscape) and (max-height:600px){
+#nvl svg{width:24px;height:24px}
+#nvi{width:48px;height:48px}
+#nvd{font-size:28px}
+#nvx{font-size:19px;margin-top:2px}
+}
 </style>
 </head>
 <body>
@@ -353,7 +367,7 @@ h1{font-size:28px}
 <div id="mt"></div>
 
 <div id="nv" hidden>
-  <div class="nvt"><span id="nvi">↑</span><div><b id="nvd">—</b><span id="nvx"></span><span id="nvp"></span></div></div>
+  <div class="nvt"><div id="nvl" hidden></div><span id="nvi">↑</span><div><b id="nvd">—</b><span id="nvx"></span><span id="nvp"></span></div></div>
   <div id="arr" hidden></div>
   <div id="lim" hidden>50</div>
   <div id="spd"><b>0</b><small>km/h</small></div>
@@ -419,7 +433,7 @@ h1{font-size:28px}
       <div class="opt"><h3>Stil hartă</h3><div class="chips" id="cm"><button class="pill" data-v="google">Google</button><button class="pill" data-v="waze">Waze</button><button class="pill" data-v="classic">Clasic</button></div><div class="m" style="margin-top:6px">Stilurile sunt inspirate din aplicațiile respective, nu copii exacte.</div></div>
       <div class="opt"><h3>Temă</h3><div class="chips" id="ct"><button class="pill" data-v="sys">Sistem</button><button class="pill" data-v="light">Zi</button><button class="pill" data-v="dark">Noapte</button><button class="pill" data-v="time">După oră</button></div><div class="m" style="margin-top:6px">„După oră”: noapte între 19:00 și 07:00.</div></div>
       <div class="opt"><h3>Ajutor</h3><button class="btn l" id="gd">Vezi ghidul</button><button class="btn l" id="rm" style="color:var(--r)">Șterge toate datele</button></div>
-      <div class="m" style="text-align:center;margin-top:12px">Hartă: © OpenStreetMap · OpenFreeMap · MapLibre<br>Versiune: 11 nov · p (acoperișuri stabile)</div>
+      <div class="m" style="text-align:center;margin-top:12px">Hartă: © OpenStreetMap · OpenFreeMap · MapLibre<br>Versiune: 11 nov · q (indicații stil Waze)</div>
     </div>
     <div class="vw" id="v-ob" hidden>
       <h2>Bine ai venit 👋</h2>
@@ -953,8 +967,24 @@ function arrowSvg(st){
   if(t==="arrive")return"⚑";
   if(RB.test(t)&&!/^exit /.test(t))return W+'<path d="M24 45V33"/><circle cx="24" cy="23" r="9" stroke-width="4"/><g transform="rotate('+a+' 24 23)"><path d="M24 14V3M19 8l5-5 5 5"/></g>'+(m.exit?'<text x="24" y="28" text-anchor="middle" font-size="13" font-weight="800" fill="#fff" stroke="none" font-family="-apple-system,Arial,sans-serif">'+m.exit+'</text>':"")+'</svg>';
   if(d==="uturn")return W+'<path d="M17 45V19a7 7 0 0 1 14 0v13M24 26l7 8 7-8"/></svg>';
-  return W+'<path d="M24 45V27"/><g transform="rotate('+a+' 24 27)"><path d="M24 27V8M15 17l9-9 9 9"/></g></svg>';
+  const I=st.intersections&&st.intersections[0];let g="",ang=a;
+  if(I&&I.bearings&&m.bearing_before!=null&&I.bearings.length>=3){
+    const rel=b=>((b-m.bearing_before+540)%360)-180;
+    I.bearings.forEach((b,ix)=>{if(ix===I.in||ix===I.out)return;if(I.entry&&I.entry[ix]===false)return;g+='<g transform="rotate('+rel(b).toFixed(0)+' 24 27)"><path d="M24 27V11" stroke="rgba(255,255,255,.4)" stroke-width="4.5"/></g>'});
+    if(I.out!=null&&I.bearings[I.out]!=null)ang=rel(I.bearings[I.out]);
+  }
+  return W+g+'<path d="M24 45V27"/><g transform="rotate('+ang.toFixed(0)+' 24 27)"><path d="M24 27V8M15 17l9-9 9 9"/></g></svg>';
 }
+/* bandă de ghidaj (benzi) din intersecția dinaintea manevrei, când OSM are datele */
+function lanesHtml(prev){
+  const I=prev&&prev.intersections&&prev.intersections[prev.intersections.length-1],ls=I&&I.lanes;
+  if(!ls||!ls.length)return"";
+  const AN={left:-90,"slight left":-45,"sharp left":-135,straight:0,"slight right":45,right:90,"sharp right":135,uturn:180};
+  if(!ls.some(l=>(l.indications||[]).some(x=>AN[x]!=null)))return"";
+  return ls.map(l=>{let g="";(l.indications||[]).forEach(ind=>{const a=AN[ind];if(a==null)return;g+='<g transform="rotate('+a+' 12 14)"><path d="M12 14V4M8 8l4-4 4 4"/></g>'});
+    return'<svg viewBox="0 0 24 24" fill="none" stroke="'+(l.valid?"#fff":"rgba(255,255,255,.3)")+'" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 23V14"/>'+g+'</svg>'}).join("");
+}
+function short(st){if(st.maneuver.type==="arrive")return"Destinație";if(st.name)return st.name;return instr({...st,name:""})}
 const arrow=st=>st.maneuver.type==="arrive"?"⚑":RB.test(st.maneuver.type)?"⟳":ARW[st.maneuver.modifier]||"↑";
 const dm=m=>cfg.units==="mi"?(m>=160?(m/1609.34).toFixed(1)+" mi":Math.round(m*3.281/10)*10+" ft"):m>=1000?(m/1000).toFixed(1)+" km":Math.round(m/10)*10+" m";
 const ml=st=>({lat:st.maneuver.location[1],lon:st.maneuver.location[0]});
@@ -1068,7 +1098,7 @@ function uiStep(){
   while(st&&nav.si<last&&dist(nav.si)<22){nav.si++;st=nav.steps[nav.si]}
   if(!st)return;const k=nav.si,d=Math.max(0,dist(k));
   const n2=nav.steps[k+1];$("nvp").textContent=n2?"Apoi: "+arrow(n2)+" "+instr(n2):"";
-  $("nvi").innerHTML=arrowSvg(st);$("nvd").textContent=dm(d);$("nvx").textContent=nav.rr?"Recalculez traseul…":instr(st);
+  {const ik=k+"|"+(st.maneuver.location||[]).join(",");if(nav._ik!==ik){nav._ik=ik;$("nvi").innerHTML=arrowSvg(st);const lh=lanesHtml(nav.steps[k-1]),lv=$("nvl");lv.innerHTML=lh;lv.hidden=!lh}}$("nvd").textContent=dm(d);$("nvx").textContent=nav.rr?"Recalculez traseul…":short(st);
   const arr=st.maneuver.type==="arrive",far=Math.max(160,Math.min(500,nav.v*14)),near=Math.max(45,Math.min(100,nav.v*4.5));
   if(!arr&&d<far&&d>near+30&&!nav.said[k+"f"]){nav.said[k+"f"]=1;speak("Peste "+(d>=200?Math.round(d/50)*50:Math.round(d/10)*10)+" de metri, "+instr(st))}
   if(!arr&&d<near&&!nav.said[k+"n"]){nav.said[k+"n"]=1;speak(instr(st))}
