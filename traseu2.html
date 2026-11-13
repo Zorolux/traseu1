@@ -238,62 +238,53 @@ h1{font-size:28px}
 .dst span{max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:var(--glass);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;color:var(--t);box-shadow:var(--hl),0 2px 8px rgba(0,0,0,.25)}
 .dst i{font-style:normal;font-size:34px;line-height:1;filter:drop-shadow(0 3px 4px rgba(0,0,0,.4))}
 
-/* ===== ecran de condus 2027: sticlă închisă, accent neon, text mare ===== */
-#nv{--hud:rgba(9,14,28,.8);--hudb:rgba(120,200,255,.28);--c1:#22d3ee;--c2:#3b82f6;--c3:#8b5cf6;font-variant-numeric:tabular-nums}
-#nv .nvt,#nv .nvb{background:var(--hud);-webkit-backdrop-filter:saturate(160%) blur(26px);backdrop-filter:saturate(160%) blur(26px);border:1px solid var(--hudb);box-shadow:0 12px 40px rgba(0,0,0,.45),0 0 28px rgba(34,211,238,.14),inset 0 1px 0 rgba(255,255,255,.12);border-radius:26px;color:#fff}
-#nv .nvt{padding:12px 16px 12px 12px;gap:14px}
-#nvi{width:64px;height:64px;flex:none;border-radius:20px;display:grid;place-content:center;font-size:38px;line-height:1;color:#fff;background:linear-gradient(135deg,var(--c1),var(--c2) 58%,var(--c3));box-shadow:0 0 24px rgba(34,211,238,.5),inset 0 1px 0 rgba(255,255,255,.35)}
-#nvd{font-size:36px;font-weight:800;letter-spacing:-1px;line-height:1.05;color:#fff}
-#nvx{font-size:17px;font-weight:600;line-height:1.25;color:rgba(255,255,255,.92);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-#nvp{font-size:14px;font-weight:600;color:#9fdcff;margin-top:3px}
-#nv .nvb{flex-wrap:wrap;gap:8px;padding:12px}
-#nv .nvb>div{flex:1 1 100%;padding:0 4px}
-#nvn{font-size:19px;font-weight:800;color:#fff;letter-spacing:-.2px}
-#nv .nvb span#nvr{display:block;font-size:14px;font-weight:600;color:#9fdcff}
-#nv .nvb button{flex:1 1 0;height:46px;padding:0 8px;border-radius:16px;font-size:16px;font-weight:700;color:#fff;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.14)}
-#nv .nvb button.on{background:linear-gradient(135deg,var(--c1),var(--c2));border-color:transparent}
-#nv #nvs{flex:1.7 1 0;border:0;background:linear-gradient(135deg,#ff5a5f,#ff2d55)!important;box-shadow:0 0 20px rgba(255,45,85,.45)}
-#nv #spd{left:14px;bottom:calc(146px + env(safe-area-inset-bottom,0px));width:84px;height:84px;border-radius:26px;background:var(--hud);border:1px solid var(--hudb);box-shadow:0 10px 30px rgba(0,0,0,.45),0 0 24px rgba(34,211,238,.18);-webkit-backdrop-filter:blur(22px);backdrop-filter:blur(22px)}
-#nv #spd b{font-size:38px;font-weight:800;letter-spacing:-1.5px;color:#fff}
-#nv #spd small{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#7dd3fc}
-#nv #spd.over{background:linear-gradient(135deg,#ff4d4d,#d1103a);border-color:rgba(255,255,255,.4);box-shadow:0 0 30px rgba(255,45,85,.65)}
-#nv #spd.over b,#nv #spd.over small{color:#fff}
-#nv #lim{left:calc(14px + 84px + 12px);bottom:calc(155px + env(safe-area-inset-bottom,0px));width:66px;height:66px;font-size:26px;font-weight:900;border:7px solid #e53935;box-shadow:0 0 0 3px rgba(255,255,255,.92),0 8px 24px rgba(0,0,0,.5)}
-#arr{top:calc(env(safe-area-inset-top,0px) + 114px);background:rgba(6,42,30,.86);border:1px solid rgba(52,211,153,.55);color:#eafff6;box-shadow:0 10px 32px rgba(0,0,0,.45),0 0 24px rgba(52,211,153,.25);-webkit-backdrop-filter:blur(22px);backdrop-filter:blur(22px);font-size:16px}
-#lastp{background:rgba(9,14,28,.8);border:1px solid rgba(120,200,255,.28);color:#fff}
-@media (orientation:landscape) and (max-height:600px){
-#nv .nvt{padding:8px 12px 8px 8px;gap:10px;border-radius:20px}
-#nvi{width:46px;height:46px;border-radius:15px;font-size:28px}
-#nvd{font-size:28px}
-#nvx{font-size:14px}
-#nvp{font-size:12px}
-#nv .nvb{padding:8px 10px;gap:6px;border-radius:20px}
-#nvn{font-size:15px}
-#nv .nvb span#nvr{font-size:12px}
-#nv .nvb button{height:40px;font-size:14px;padding:0 6px;border-radius:13px}
-#nv #spd{left:auto;right:calc(14px + env(safe-area-inset-right,0px));bottom:calc(14px + env(safe-area-inset-bottom,0px));width:78px;height:78px;border-radius:24px}
-#nv #spd b{font-size:32px}
-#nv #lim{left:auto;right:calc(14px + 78px + 12px + env(safe-area-inset-right,0px));bottom:calc(20px + env(safe-area-inset-bottom,0px));width:64px;height:64px;font-size:24px}
-#arr{top:calc(env(safe-area-inset-top,0px) + 84px)}
-}
-
-/* ===== colțuri mai rotunjite ===== */
+/* ===== ecran de condus: Frosted Glass minimalist ===== */
 .bdg{margin-left:6px;background:var(--a);color:#fff;border-radius:999px;padding:1px 7px;font-size:11px;font-weight:700}
 .mtag{display:block;font-size:11px;font-weight:700;color:var(--a);margin-top:2px}
-#nv .nvt{border-radius:38px;padding:12px 22px 12px 12px}
-#nvi{border-radius:50%}
-#nv .nvb{border-radius:38px;padding:14px}
-#nv .nvb button{border-radius:999px}
-#nv #spd{width:88px;height:88px;border-radius:50%}
-#nv #lim{left:calc(14px + 88px + 12px);bottom:calc(157px + env(safe-area-inset-bottom,0px))}
-#arr{border-radius:999px;padding:12px 22px}
-#lastp{border-radius:999px;padding:8px 14px}
+#nv{font-variant-numeric:tabular-nums;color:#fff}
+#nv .nvt,#nv .nvb{background:rgba(20,20,25,.65);-webkit-backdrop-filter:blur(20px) saturate(150%);backdrop-filter:blur(20px) saturate(150%);border:1px solid rgba(255,255,255,.12);border-radius:30px;box-shadow:0 8px 32px rgba(0,0,0,.22);color:#fff}
+#nv .nvt{padding:14px 22px 14px 16px;gap:14px;align-items:center}
+#nvi{width:54px;height:54px;flex:none;display:grid;place-content:center;background:none;border-radius:0;box-shadow:none;font-size:40px;line-height:1;color:#fff;filter:drop-shadow(0 2px 6px rgba(0,0,0,.35))}
+#nvi svg{width:100%;height:100%;display:block}
+#nvd{display:block;font-size:40px;font-weight:700;letter-spacing:-1.2px;line-height:1;color:#fff;text-shadow:0 1px 8px rgba(0,0,0,.3)}
+#nvx{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:17px;font-weight:600;line-height:1.2;margin-top:5px;color:rgba(255,255,255,.95)}
+#nvp{display:block;font-size:13px;font-weight:500;margin-top:4px;color:rgba(255,255,255,.58)}
+#nv .nvb{flex-wrap:wrap;gap:0;padding:14px 16px}
+#nv .nvb>div{flex:1 1 100%;min-width:0;margin-bottom:10px;padding:0}
+#nvn{display:block;font-size:19px;font-weight:700;letter-spacing:-.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#fff}
+#nvr{display:block;font-size:13px;font-weight:500;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:rgba(255,255,255,.62)}
+#nv .nvb button{height:42px;padding:0 4px;border:0;color:#fff;font-size:15px;font-weight:600;background:rgba(255,255,255,.1)}
+#nv .nvb button.on{background:rgba(255,255,255,.26)}
+#nvo,#n3,#nvm{flex:1 1 0;border-radius:0}
+#nvo{border-radius:999px 0 0 999px}
+#nvm{border-radius:0 999px 999px 0}
+#nvo,#n3{border-right:1px solid rgba(255,255,255,.14)!important}
+#nv #nvs{flex:0 0 auto;margin-left:10px;padding:0 20px;border-radius:999px;font-weight:700;background:linear-gradient(135deg,#ff5f6d,#ff2d55)!important;box-shadow:0 4px 16px rgba(255,45,85,.4)}
+#nv #spd{left:14px;bottom:calc(138px + env(safe-area-inset-bottom,0px));width:86px;height:86px;border-radius:50%;background:rgba(20,20,25,.4);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border:2.5px solid rgba(255,255,255,.55);box-shadow:0 6px 22px rgba(0,0,0,.25)}
+#nv #spd b{font-size:34px;font-weight:600;letter-spacing:-1px;color:#fff;text-shadow:0 1px 8px rgba(0,0,0,.4)}
+#nv #spd small{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.7)}
+#nv #spd.over{background:rgba(255,45,85,.22);border-color:#ff5a5f;box-shadow:0 0 22px rgba(255,45,85,.55)}
+#nv #spd.over b{color:#ffe1e3}
+#nv #spd.over small{color:#ffc2c7}
+#nv #lim{left:calc(14px + 86px + 12px);bottom:calc(148px + env(safe-area-inset-bottom,0px));width:62px;height:62px;font-size:24px;font-weight:800;border:6px solid #e53935;box-shadow:0 0 0 2px rgba(255,255,255,.9),0 6px 18px rgba(0,0,0,.35)}
+#arr{top:calc(env(safe-area-inset-top,0px) + 106px);padding:10px 20px;border-radius:999px;font-size:15px;font-weight:600;background:rgba(18,44,34,.7);border:1px solid rgba(120,255,200,.35);color:#eafff6;-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);box-shadow:0 8px 28px rgba(0,0,0,.25)}
+#lastp{background:rgba(20,20,25,.65);border:1px solid rgba(255,255,255,.12);color:#fff;border-radius:999px;padding:8px 14px}
 @media (orientation:landscape) and (max-height:600px){
-#nv .nvt{border-radius:30px;padding:8px 16px 8px 8px}
-#nv .nvb{border-radius:28px;padding:8px 10px}
-#nv .nvb button{border-radius:999px}
-#nv #spd{width:78px;height:78px;border-radius:50%}
-#nv #lim{left:auto;bottom:calc(20px + env(safe-area-inset-bottom,0px))}
+#nv .nvt{padding:9px 16px 9px 12px;gap:10px;border-radius:26px}
+#nvi{width:38px;height:38px}
+#nvd{font-size:30px}
+#nvx{font-size:14px;margin-top:3px}
+#nvp{font-size:11.5px;margin-top:2px}
+#nv .nvb{padding:9px 12px;border-radius:26px}
+#nv .nvb>div{margin-bottom:7px}
+#nvn{font-size:16px}
+#nvr{font-size:12px}
+#nv .nvb button{height:38px;font-size:14px}
+#nv #nvs{padding:0 16px;margin-left:8px}
+#nv #spd{left:auto;right:calc(14px + env(safe-area-inset-right,0px));bottom:calc(14px + env(safe-area-inset-bottom,0px));width:78px;height:78px}
+#nv #spd b{font-size:30px}
+#nv #lim{left:auto;right:calc(14px + 78px + 12px + env(safe-area-inset-right,0px));bottom:calc(22px + env(safe-area-inset-bottom,0px));width:58px;height:58px;font-size:22px}
+#arr{top:calc(env(safe-area-inset-top,0px) + 78px)}
 }
 </style>
 </head>
@@ -428,7 +419,7 @@ h1{font-size:28px}
       <div class="opt"><h3>Stil hartă</h3><div class="chips" id="cm"><button class="pill" data-v="google">Google</button><button class="pill" data-v="waze">Waze</button><button class="pill" data-v="classic">Clasic</button></div><div class="m" style="margin-top:6px">Stilurile sunt inspirate din aplicațiile respective, nu copii exacte.</div></div>
       <div class="opt"><h3>Temă</h3><div class="chips" id="ct"><button class="pill" data-v="sys">Sistem</button><button class="pill" data-v="light">Zi</button><button class="pill" data-v="dark">Noapte</button><button class="pill" data-v="time">După oră</button></div><div class="m" style="margin-top:6px">„După oră”: noapte între 19:00 și 07:00.</div></div>
       <div class="opt"><h3>Ajutor</h3><button class="btn l" id="gd">Vezi ghidul</button><button class="btn l" id="rm" style="color:var(--r)">Șterge toate datele</button></div>
-      <div class="m" style="text-align:center;margin-top:12px">Hartă: © OpenStreetMap · OpenFreeMap · MapLibre<br>Versiune: 11 nov · m (traseu pe toate hărțile)</div>
+      <div class="m" style="text-align:center;margin-top:12px">Hartă: © OpenStreetMap · OpenFreeMap · MapLibre<br>Versiune: 11 nov · o (Frosted Glass)</div>
     </div>
     <div class="vw" id="v-ob" hidden>
       <h2>Bine ai venit 👋</h2>
@@ -940,9 +931,30 @@ const nav={d3:1,last:null,on:0,w:null,steps:[],geo:[],si:1,tgt:null,said:{},mute
 const MODT={left:"la stânga","slight left":"ușor la stânga","sharp left":"strâns la stânga",right:"la dreapta","slight right":"ușor la dreapta","sharp right":"strâns la dreapta"};
 const ARW={left:"←","slight left":"↖","sharp left":"↙",right:"→","slight right":"↗","sharp right":"↘",straight:"↑",uturn:"↩"};
 const RB=/roundabout|rotary/;
-function instr(st){const t=st.maneuver.type,d=st.maneuver.modifier,n=st.name?" pe "+st.name:"";
-  if(t==="arrive")return"Ai ajuns la destinație";if(RB.test(t))return"Intră în sensul giratoriu"+n;if(d==="uturn")return"Întoarce-te";
-  return(MODT[d]?"Virează "+MODT[d]:"Continuă înainte")+n}
+const ORD=["","prima","a doua","a treia","a patra","a cincea","a șasea","a șaptea","a opta","a noua","a zecea"];
+function instr(st){
+  const m=st.maneuver,t=m.type,d=m.modifier,n=st.name?" pe "+st.name:"",dir=MODT[d];
+  if(t==="arrive")return"Ai ajuns la destinație";
+  if(/^exit (roundabout|rotary)/.test(t))return"Ieși din sensul giratoriu"+n;
+  if(RB.test(t)){const ex=m.exit;return"Intră în sensul giratoriu"+(ex&&ORD[ex]?" și ia "+ORD[ex]+" ieșire":dir?" și ieși "+dir:"")+n}
+  if(d==="uturn")return"Întoarce-te"+n;
+  if(t==="fork")return"La bifurcație ține "+(/left/.test(d||"")?"stânga":/right/.test(d||"")?"dreapta":"înainte")+n;
+  if(t==="end of road")return"La capătul drumului "+(dir?"virează "+dir:"continuă")+n;
+  if(t==="merge")return"Intră în trafic"+n;
+  if(t==="on ramp")return"Ia rampa"+(dir?" "+dir:"")+n;
+  if(t==="off ramp")return"Ia ieșirea"+(dir?" "+dir:"")+n;
+  return(dir?"Virează "+dir:"Continuă înainte")+n;
+}
+/* pictogramă de manevră: unghiul real al virajului, ieșirea din sens giratoriu, întoarcere */
+const MANG={straight:0,"slight right":38,right:90,"sharp right":140,uturn:180,"sharp left":-140,left:-90,"slight left":-38};
+function arrowSvg(st){
+  const m=st.maneuver,t=m.type,d=m.modifier,a=MANG[d]!=null?MANG[d]:0;
+  const W='<svg viewBox="0 0 48 48" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">';
+  if(t==="arrive")return"⚑";
+  if(RB.test(t)&&!/^exit /.test(t))return W+'<path d="M24 45V33"/><circle cx="24" cy="23" r="9" stroke-width="4"/><g transform="rotate('+a+' 24 23)"><path d="M24 14V3M19 8l5-5 5 5"/></g>'+(m.exit?'<text x="24" y="28" text-anchor="middle" font-size="13" font-weight="800" fill="#fff" stroke="none" font-family="-apple-system,Arial,sans-serif">'+m.exit+'</text>':"")+'</svg>';
+  if(d==="uturn")return W+'<path d="M17 45V19a7 7 0 0 1 14 0v13M24 26l7 8 7-8"/></svg>';
+  return W+'<path d="M24 45V27"/><g transform="rotate('+a+' 24 27)"><path d="M24 27V8M15 17l9-9 9 9"/></g></svg>';
+}
 const arrow=st=>st.maneuver.type==="arrive"?"⚑":RB.test(st.maneuver.type)?"⟳":ARW[st.maneuver.modifier]||"↑";
 const dm=m=>cfg.units==="mi"?(m>=160?(m/1609.34).toFixed(1)+" mi":Math.round(m*3.281/10)*10+" ft"):m>=1000?(m/1000).toFixed(1)+" km":Math.round(m/10)*10+" m";
 const ml=st=>({lat:st.maneuver.location[1],lon:st.maneuver.location[0]});
@@ -1056,7 +1068,7 @@ function uiStep(){
   while(st&&nav.si<last&&dist(nav.si)<22){nav.si++;st=nav.steps[nav.si]}
   if(!st)return;const k=nav.si,d=Math.max(0,dist(k));
   const n2=nav.steps[k+1];$("nvp").textContent=n2?"Apoi: "+arrow(n2)+" "+instr(n2):"";
-  $("nvi").textContent=arrow(st);$("nvd").textContent=dm(d);$("nvx").textContent=nav.rr?"Recalculez traseul…":instr(st);
+  $("nvi").innerHTML=arrowSvg(st);$("nvd").textContent=dm(d);$("nvx").textContent=nav.rr?"Recalculez traseul…":instr(st);
   const arr=st.maneuver.type==="arrive",far=Math.max(160,Math.min(500,nav.v*14)),near=Math.max(45,Math.min(100,nav.v*4.5));
   if(!arr&&d<far&&d>near+30&&!nav.said[k+"f"]){nav.said[k+"f"]=1;speak("Peste "+(d>=200?Math.round(d/50)*50:Math.round(d/10)*10)+" de metri, "+instr(st))}
   if(!arr&&d<near&&!nav.said[k+"n"]){nav.said[k+"n"]=1;speak(instr(st))}
