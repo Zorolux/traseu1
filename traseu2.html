@@ -419,7 +419,7 @@ h1{font-size:28px}
       <div class="opt"><h3>Stil hartă</h3><div class="chips" id="cm"><button class="pill" data-v="google">Google</button><button class="pill" data-v="waze">Waze</button><button class="pill" data-v="classic">Clasic</button></div><div class="m" style="margin-top:6px">Stilurile sunt inspirate din aplicațiile respective, nu copii exacte.</div></div>
       <div class="opt"><h3>Temă</h3><div class="chips" id="ct"><button class="pill" data-v="sys">Sistem</button><button class="pill" data-v="light">Zi</button><button class="pill" data-v="dark">Noapte</button><button class="pill" data-v="time">După oră</button></div><div class="m" style="margin-top:6px">„După oră”: noapte între 19:00 și 07:00.</div></div>
       <div class="opt"><h3>Ajutor</h3><button class="btn l" id="gd">Vezi ghidul</button><button class="btn l" id="rm" style="color:var(--r)">Șterge toate datele</button></div>
-      <div class="m" style="text-align:center;margin-top:12px">Hartă: © OpenStreetMap · OpenFreeMap · MapLibre<br>Versiune: 11 nov · o (Frosted Glass)</div>
+      <div class="m" style="text-align:center;margin-top:12px">Hartă: © OpenStreetMap · OpenFreeMap · MapLibre<br>Versiune: 11 nov · p (acoperișuri stabile)</div>
     </div>
     <div class="vw" id="v-ob" hidden>
       <h2>Bine ai venit 👋</h2>
@@ -759,7 +759,7 @@ function bldExprs(dark){
   const roofLight=["step",h,["match",["%",sd,3],0,"#a9533b",1,"#8e4d3d","#77706c"],9,"#8b8884",45,"#a2a7ae"];
   const roofDark=["step",h,"#5a3a33",9,"#4a4a4d",45,"#555a63"];
   const wall=dark?wallDark:["to-color",["get","colour"],wallLight];
-  const top=["max",["-",h,.45],["+",mh,.1]];
+  const top=["max",["-",h,["min",1.6,["*",h,.3]]],["+",mh,.1]];
   return{h,mh,wall,roof:dark?roofDark:roofLight,top,roofTop:["max",h,["+",mh,.2]]}
 }
 /* șosele: lățimi pe clase, contur (casing) mai gros, capete rotunjite */
@@ -792,11 +792,11 @@ function styleBuildings(){
     }
     try{
       const ly={id:"b3d-roof",type:"fill-extrusion",source:base.source,"source-layer":base["source-layer"],minzoom:15,
-        paint:{"fill-extrusion-color":E.roof,"fill-extrusion-base":E.top,"fill-extrusion-height":E.roofTop,"fill-extrusion-opacity":.98,"fill-extrusion-vertical-gradient":true}};
+        paint:{"fill-extrusion-color":E.roof,"fill-extrusion-base":E.top,"fill-extrusion-height":E.roofTop,"fill-extrusion-opacity":1,"fill-extrusion-vertical-gradient":true}};
       if(base.filter)ly.filter=base.filter;
       gm.addLayer(ly,before);roofOk=!!gm.getLayer("b3d-roof");
     }catch(e){}
-    const P={"fill-extrusion-color":E.wall,"fill-extrusion-opacity":.98,"fill-extrusion-vertical-gradient":true,"fill-extrusion-base":E.mh};
+    const P={"fill-extrusion-color":E.wall,"fill-extrusion-opacity":1,"fill-extrusion-vertical-gradient":true,"fill-extrusion-base":E.mh};
     if(roofOk)P["fill-extrusion-height"]=E.top;
     Object.keys(P).forEach(k=>{try{gm.setPaintProperty(base.id,k,P[k])}catch(e){}});
   }
