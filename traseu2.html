@@ -237,6 +237,45 @@ h1{font-size:28px}
 .dst{display:flex;flex-direction:column;align-items:center;pointer-events:none}
 .dst span{max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:var(--glass);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;color:var(--t);box-shadow:var(--hl),0 2px 8px rgba(0,0,0,.25)}
 .dst i{font-style:normal;font-size:34px;line-height:1;filter:drop-shadow(0 3px 4px rgba(0,0,0,.4))}
+
+/* ===== ecran de condus 2027: sticlă închisă, accent neon, text mare ===== */
+#nv{--hud:rgba(9,14,28,.8);--hudb:rgba(120,200,255,.28);--c1:#22d3ee;--c2:#3b82f6;--c3:#8b5cf6;font-variant-numeric:tabular-nums}
+#nv .nvt,#nv .nvb{background:var(--hud);-webkit-backdrop-filter:saturate(160%) blur(26px);backdrop-filter:saturate(160%) blur(26px);border:1px solid var(--hudb);box-shadow:0 12px 40px rgba(0,0,0,.45),0 0 28px rgba(34,211,238,.14),inset 0 1px 0 rgba(255,255,255,.12);border-radius:26px;color:#fff}
+#nv .nvt{padding:12px 16px 12px 12px;gap:14px}
+#nvi{width:64px;height:64px;flex:none;border-radius:20px;display:grid;place-content:center;font-size:38px;line-height:1;color:#fff;background:linear-gradient(135deg,var(--c1),var(--c2) 58%,var(--c3));box-shadow:0 0 24px rgba(34,211,238,.5),inset 0 1px 0 rgba(255,255,255,.35)}
+#nvd{font-size:36px;font-weight:800;letter-spacing:-1px;line-height:1.05;color:#fff}
+#nvx{font-size:17px;font-weight:600;line-height:1.25;color:rgba(255,255,255,.92);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+#nvp{font-size:14px;font-weight:600;color:#9fdcff;margin-top:3px}
+#nv .nvb{flex-wrap:wrap;gap:8px;padding:12px}
+#nv .nvb>div{flex:1 1 100%;padding:0 4px}
+#nvn{font-size:19px;font-weight:800;color:#fff;letter-spacing:-.2px}
+#nv .nvb span#nvr{display:block;font-size:14px;font-weight:600;color:#9fdcff}
+#nv .nvb button{flex:1 1 0;height:46px;padding:0 8px;border-radius:16px;font-size:16px;font-weight:700;color:#fff;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.14)}
+#nv .nvb button.on{background:linear-gradient(135deg,var(--c1),var(--c2));border-color:transparent}
+#nv #nvs{flex:1.7 1 0;border:0;background:linear-gradient(135deg,#ff5a5f,#ff2d55)!important;box-shadow:0 0 20px rgba(255,45,85,.45)}
+#nv #spd{left:14px;bottom:calc(146px + env(safe-area-inset-bottom,0px));width:84px;height:84px;border-radius:26px;background:var(--hud);border:1px solid var(--hudb);box-shadow:0 10px 30px rgba(0,0,0,.45),0 0 24px rgba(34,211,238,.18);-webkit-backdrop-filter:blur(22px);backdrop-filter:blur(22px)}
+#nv #spd b{font-size:38px;font-weight:800;letter-spacing:-1.5px;color:#fff}
+#nv #spd small{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#7dd3fc}
+#nv #spd.over{background:linear-gradient(135deg,#ff4d4d,#d1103a);border-color:rgba(255,255,255,.4);box-shadow:0 0 30px rgba(255,45,85,.65)}
+#nv #spd.over b,#nv #spd.over small{color:#fff}
+#nv #lim{left:calc(14px + 84px + 12px);bottom:calc(155px + env(safe-area-inset-bottom,0px));width:66px;height:66px;font-size:26px;font-weight:900;border:7px solid #e53935;box-shadow:0 0 0 3px rgba(255,255,255,.92),0 8px 24px rgba(0,0,0,.5)}
+#arr{top:calc(env(safe-area-inset-top,0px) + 114px);background:rgba(6,42,30,.86);border:1px solid rgba(52,211,153,.55);color:#eafff6;box-shadow:0 10px 32px rgba(0,0,0,.45),0 0 24px rgba(52,211,153,.25);-webkit-backdrop-filter:blur(22px);backdrop-filter:blur(22px);font-size:16px}
+#lastp{background:rgba(9,14,28,.8);border:1px solid rgba(120,200,255,.28);color:#fff}
+@media (orientation:landscape) and (max-height:600px){
+#nv .nvt{padding:8px 12px 8px 8px;gap:10px;border-radius:20px}
+#nvi{width:46px;height:46px;border-radius:15px;font-size:28px}
+#nvd{font-size:28px}
+#nvx{font-size:14px}
+#nvp{font-size:12px}
+#nv .nvb{padding:8px 10px;gap:6px;border-radius:20px}
+#nvn{font-size:15px}
+#nv .nvb span#nvr{font-size:12px}
+#nv .nvb button{height:40px;font-size:14px;padding:0 6px;border-radius:13px}
+#nv #spd{left:auto;right:calc(14px + env(safe-area-inset-right,0px));bottom:calc(14px + env(safe-area-inset-bottom,0px));width:78px;height:78px;border-radius:24px}
+#nv #spd b{font-size:32px}
+#nv #lim{left:auto;right:calc(14px + 78px + 12px + env(safe-area-inset-right,0px));bottom:calc(20px + env(safe-area-inset-bottom,0px));width:64px;height:64px;font-size:24px}
+#arr{top:calc(env(safe-area-inset-top,0px) + 84px)}
+}
 </style>
 </head>
 <body>
@@ -370,7 +409,7 @@ h1{font-size:28px}
       <div class="opt"><h3>Stil hartă</h3><div class="chips" id="cm"><button class="pill" data-v="google">Google</button><button class="pill" data-v="waze">Waze</button><button class="pill" data-v="classic">Clasic</button></div><div class="m" style="margin-top:6px">Stilurile sunt inspirate din aplicațiile respective, nu copii exacte.</div></div>
       <div class="opt"><h3>Temă</h3><div class="chips" id="ct"><button class="pill" data-v="sys">Sistem</button><button class="pill" data-v="light">Zi</button><button class="pill" data-v="dark">Noapte</button><button class="pill" data-v="time">După oră</button></div><div class="m" style="margin-top:6px">„După oră”: noapte între 19:00 și 07:00.</div></div>
       <div class="opt"><h3>Ajutor</h3><button class="btn l" id="gd">Vezi ghidul</button><button class="btn l" id="rm" style="color:var(--r)">Șterge toate datele</button></div>
-      <div class="m" style="text-align:center;margin-top:12px">Hartă: © OpenStreetMap · OpenFreeMap · MapLibre<br>Versiune: 11 nov · j (ordine: cel mai apropiat)</div>
+      <div class="m" style="text-align:center;margin-top:12px">Hartă: © OpenStreetMap · OpenFreeMap · MapLibre<br>Versiune: 11 nov · k (ecran de condus nou)</div>
     </div>
     <div class="vw" id="v-ob" hidden>
       <h2>Bine ai venit 👋</h2>
@@ -591,12 +630,9 @@ function nearest(list,rt){
   return{route,legs:route.slice(1).map((p,i)=>({distance:hav(route[i],p),duration:null})),dist:d,dur:null,approx:true,geo:route.map(p=>[p.lat,p.lon])};
 }
 async function osrm(list,rt){
-  /* ordine: primul punct = cel mai apropiat de start/tine; fiecare următor = cel mai apropiat de punctul precedent (distanță pe șosea, cu rezervă în linie dreaptă) */
-  const all=[start,...list];let D=null;
-  if(all.length<=100){
-    try{const r=await fetch("https://router.project-osrm.org/table/v1/driving/"+all.map(p=>p.lon+","+p.lat).join(";")+"?annotations=distance"),j=await r.json();if(j.code==="Ok"&&j.distances)D=j.distances}catch(e){}
-  }
-  const dd=(i,k)=>{const v=D&&D[i]&&D[i][k];return typeof v==="number"?v:hav(all[i],all[k])*1.3};
+  /* ordine: primul punct = cel mai apropiat de start/tine; fiecare următor = cel mai apropiat de punctul precedent (distanță în linie dreaptă, deci un punct de peste stradă contează ca foarte aproape) */
+  const all=[start,...list];
+  const dd=(i,k)=>hav(all[i],all[k]);
   const left=[];for(let i=1;i<all.length;i++)left.push(i);
   const ord=[0];let cur=0;
   while(left.length){let bi=0,bd=Infinity;left.forEach((k,x)=>{const v=dd(cur,k);if(v<bd){bd=v;bi=x}});cur=left.splice(bi,1)[0];ord.push(cur)}
