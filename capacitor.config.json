@@ -1,0 +1,6 @@
+{
+  "appId": "ro.zorolux.traseu",
+  "appName": "Traseu optim",
+  "webDir": "www",
+  "ios": { "contentInset": "never", "backgroundColor": "#000000" }
+}
