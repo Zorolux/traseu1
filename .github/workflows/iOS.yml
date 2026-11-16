@@ -1,0 +1,42 @@
+name: Build iOS IPA
+on:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Pregateste aplicatia web
+        run: |
+          mkdir -p www
+          cp traseu2.html www/index.html
+          cp traseu2.html www/app.html
+          npm install
+          npx cap add ios
+      - name: Permisiuni locatie si fundal
+        run: |
+          P=ios/App/App/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :NSLocationWhenInUseUsageDescription string Locatia ta este folosita pentru navigare." $P
+          /usr/libexec/PlistBuddy -c "Add :NSLocationAlwaysAndWhenInUseUsageDescription string Locatia ta este folosita pentru navigare si cand ecranul este blocat." $P
+          /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes array" $P
+          /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes:0 string location" $P
+          /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes:1 string audio" $P
+      - name: Icoana aplicatiei
+        run: |
+          for f in ios/App/App/Assets.xcassets/AppIcon.appiconset/*.png; do cp icon.png "$f"; done
+      - run: npx cap sync ios
+      - name: Compileaza nesemnat
+        run: |
+          cd ios/App
+          if [ -d App.xcworkspace ]; then TARGET="-workspace App.xcworkspace"; else TARGET="-project App.xcodeproj"; fi
+          xcodebuild $TARGET -scheme App -configuration Release -sdk iphoneos -derivedDataPath build CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+          mkdir -p Payload
+          cp -R build/Build/Products/Release-iphoneos/App.app Payload/
+          zip -qr TraseuOptim.ipa Payload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TraseuOptim-ipa
+          path: ios/App/TraseuOptim.ipa
