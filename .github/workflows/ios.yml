@@ -9,14 +9,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Pregătește aplicația web
+      - name: Pregateste aplicatia web
         run: |
           mkdir -p www
           cp traseu2.html www/index.html
           cp traseu2.html www/app.html
           npm install
           npx cap add ios
-      - name: Permisiuni locație și fundal
+      - name: Permisiuni locatie si fundal
         run: |
           P=ios/App/App/Info.plist
           /usr/libexec/PlistBuddy -c "Add :NSLocationWhenInUseUsageDescription string Locatia ta este folosita pentru navigare." $P
@@ -24,11 +24,11 @@ jobs:
           /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes array" $P
           /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes:0 string location" $P
           /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes:1 string audio" $P
-      - name: Icoana aplicației
+      - name: Icoana aplicatiei
         run: |
           for f in ios/App/App/Assets.xcassets/AppIcon.appiconset/*.png; do cp icon.png "$f"; done
       - run: npx cap sync ios
-      - name: Compilează (nesemnat)
+      - name: Compileaza nesemnat
         run: |
           cd ios/App
           if [ -d App.xcworkspace ]; then TARGET="-workspace App.xcworkspace"; else TARGET="-project App.xcodeproj"; fi
