@@ -428,12 +428,14 @@ h1{font-size:28px}
       <div class="opt"><h3>Unități</h3><div class="chips" id="cu"><button class="pill" data-v="km">Kilometri</button><button class="pill" data-v="mi">Mile</button></div></div>
       <div class="opt"><h3>Limită de viteză și alertă</h3><div class="chips" id="cs"><button class="pill" data-v="1">Pornită</button><button class="pill" data-v="0">Oprită</button></div><div class="m" style="margin-top:6px">Limita vine din OpenStreetMap și poate lipsi sau fi greșită. Respectă mereu semnele de circulație.</div></div>
       <div class="opt"><h3>Semne și sensuri unice pe hartă</h3><div class="chips" id="csg"><button class="pill" data-v="1">Pornit</button><button class="pill" data-v="0">Oprit</button></div><div class="m" style="margin-top:6px">Săgeți albastre pe străzile cu sens unic, STOP, cedează trecerea, semafoare, treceri de pietoni, camere de viteză, limitatoare și limite de viteză. Datele vin în timp real din OpenStreetMap și apar de la zoom 16. <span id="sgt"></span></div></div>
+      <div class="opt"><h3>Ordinea opririlor</h3><div class="chips" id="cord"><button class="pill" data-v="fast">Cel mai rapid</button><button class="pill" data-v="near">Cel mai apropiat</button></div><div class="m" style="margin-top:6px">„Cel mai rapid" alege ordinea cu timpul total minim (cu trafic live dacă ai cheie TomTom, altfel după timpii de pe hartă). „Cel mai apropiat" merge mereu la punctul cel mai aproape.</div></div>
+      <div class="opt"><h3>Trafic și aglomerație (TomTom, gratuit)</h3><div class="chips" id="ctr"><button class="pill" data-v="1">Pornit</button><button class="pill" data-v="0">Oprit</button></div><input id="ttk" type="text" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Lipește cheia TomTom" style="width:100%;margin-top:8px;padding:12px 14px;border-radius:14px;border:1px solid rgba(128,128,128,.35);background:rgba(128,128,128,.12);color:inherit;font:inherit"><div class="m" style="margin-top:6px">Cont gratuit, fără card, pe developer.tomtom.com → Dashboard → Add new key. Limita gratuită: 2.500 cereri/zi pentru rutare și 50.000 pentru harta de trafic. Cheia rămâne doar pe telefonul tău. Date trafic © TomTom.</div></div>
       <div class="opt"><h3>Voce în navigare</h3><div class="chips" id="cv"><button class="pill" data-v="1">Pornită</button><button class="pill" data-v="0">Oprită</button></div></div>
       <div class="opt"><h3>Retur la start la hărți noi</h3><div class="chips" id="cr"><button class="pill" data-v="1">Da</button><button class="pill" data-v="0">Nu</button></div></div>
       <div class="opt"><h3>Stil hartă</h3><div class="chips" id="cm"><button class="pill" data-v="google">Google</button><button class="pill" data-v="waze">Waze</button><button class="pill" data-v="classic">Clasic</button></div><div class="m" style="margin-top:6px">Stilurile sunt inspirate din aplicațiile respective, nu copii exacte.</div></div>
       <div class="opt"><h3>Temă</h3><div class="chips" id="ct"><button class="pill" data-v="sys">Sistem</button><button class="pill" data-v="light">Zi</button><button class="pill" data-v="dark">Noapte</button><button class="pill" data-v="time">După oră</button></div><div class="m" style="margin-top:6px">„După oră”: noapte între 19:00 și 07:00.</div></div>
       <div class="opt"><h3>Ajutor</h3><button class="btn l" id="gd">Vezi ghidul</button><button class="btn l" id="rm" style="color:var(--r)">Șterge toate datele</button></div>
-      <div class="m" style="text-align:center;margin-top:12px">Hartă: © OpenStreetMap · OpenFreeMap · MapLibre<br>Versiune: 11 nov · q (indicații stil Waze)</div>
+      <div class="m" style="text-align:center;margin-top:12px">Hartă: © OpenStreetMap · OpenFreeMap · MapLibre<br>Versiune: 17 nov · r (trafic + ordine după timp)</div>
     </div>
     <div class="vw" id="v-ob" hidden>
       <h2>Bine ai venit 👋</h2>
@@ -671,18 +673,69 @@ function nearest(list,rt){
   if(rt){d+=hav(c,start);route.push(start)}
   return{route,legs:route.slice(1).map((p,i)=>({distance:hav(route[i],p),duration:null})),dist:d,dur:null,approx:true,geo:route.map(p=>[p.lat,p.lon])};
 }
-async function osrm(list,rt){
-  /* ordine: primul punct = cel mai apropiat de start/tine; fiecare următor = cel mai apropiat de punctul precedent (distanță în linie dreaptă, deci un punct de peste stradă contează ca foarte aproape) */
-  const all=[start,...list];
-  const dd=(i,k)=>hav(all[i],all[k]);
+function nearestOrder(all){
   const left=[];for(let i=1;i<all.length;i++)left.push(i);
   const ord=[0];let cur=0;
-  while(left.length){let bi=0,bd=Infinity;left.forEach((k,x)=>{const v=dd(cur,k);if(v<bd){bd=v;bi=x}});cur=left.splice(bi,1)[0];ord.push(cur)}
+  while(left.length){let bi=0,bd=Infinity;left.forEach((k,x)=>{const v=hav(all[cur],all[k]);if(v<bd){bd=v;bi=x}});cur=left.splice(bi,1)[0];ord.push(cur)}
+  return ord;
+}
+/* ordine cu timp total minim: cel mai apropiat vecin + îmbunătățiri 2-opt și mutări de puncte */
+function tspOrder(T,rt){
+  const n=T.length,c=(a,b)=>T[a][b];
+  const cost=p=>{let s=0;for(let i=0;i<p.length-1;i++)s+=c(p[i],p[i+1]);if(rt)s+=c(p[p.length-1],0);return s};
+  let p=[0];const left=[];for(let i=1;i<n;i++)left.push(i);
+  while(left.length){let bi=0,bd=Infinity;left.forEach((k,x)=>{const v=c(p[p.length-1],k);if(v<bd){bd=v;bi=x}});p.push(left.splice(bi,1)[0])}
+  let best=cost(p),imp=true;const t0=Date.now();
+  while(imp&&Date.now()-t0<700){
+    imp=false;
+    for(let i=1;i<n-1&&!imp;i++)for(let j=i+1;j<n;j++){const q=p.slice(0,i).concat(p.slice(i,j+1).reverse(),p.slice(j+1)),v=cost(q);if(v<best-1e-6){p=q;best=v;imp=true;break}}
+    if(imp)continue;
+    for(let i=1;i<n&&!imp;i++){const x=p[i],r=p.slice(0,i).concat(p.slice(i+1));for(let j=1;j<=r.length;j++){if(j===i)continue;const q=r.slice(0,j).concat([x],r.slice(j)),v=cost(q);if(v<best-1e-6){p=q;best=v;imp=true;break}}}
+  }
+  return p;
+}
+const ttCache=new Map();
+const ttKeyOf=a=>a.map(p=>p.lat.toFixed(4)+","+p.lon.toFixed(4)).join(";");
+function ttBad(r){if(r.status===403||r.status===429){if(!ttOff){ttOff=true;toast("Trafic: cheie TomTom invalidă sau limita zilnică atinsă.",6000);try{trafficApply()}catch(e){}}return true}return false}
+async function ttMatrix(all){
+  if(!ttKey||ttOff||all.length>10)return null;
+  const k="m|"+ttKeyOf(all),c=ttCache.get(k);if(c&&Date.now()-c.t<180000)return c.v;
+  const pts=all.map(p=>({point:{latitude:p.lat,longitude:p.lon}}));
+  try{
+    const r=await fetch("https://api.tomtom.com/routing/matrix/2?key="+encodeURIComponent(ttKey),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({origins:pts,destinations:pts,options:{departAt:"now",traffic:"live",routeType:"fastest",travelMode:"car"}})});
+    if(ttBad(r)||!r.ok)return null;
+    const j=await r.json(),n=all.length,T=Array.from({length:n},()=>Array(n).fill(null));
+    (j.data||[]).forEach(x=>{if(x.routeSummary)T[x.originIndex][x.destinationIndex]=x.routeSummary.travelTimeInSeconds});
+    ttCache.set(k,{t:Date.now(),v:T});return T;
+  }catch(e){return null}
+}
+async function osrmMatrix(all){
+  if(all.length>100)return null;
+  try{const r=await fetch("https://router.project-osrm.org/table/v1/driving/"+all.map(p=>p.lon+","+p.lat).join(";")+"?annotations=duration"),j=await r.json();return j.code==="Ok"?j.durations:null}catch(e){return null}
+}
+async function osrm(list,rt){
+  const all=[start,...list];let ord;
+  if(cfg.ord==="near")ord=nearestOrder(all);
+  else{
+    let T=await ttMatrix(all);if(!T)T=await osrmMatrix(all);
+    if(T)ord=tspOrder(T.map((row,i)=>row.map((v,k)=>v==null?hav(all[i],all[k])/9:v)),rt);else ord=nearestOrder(all);
+  }
   const seq=ord.map(i=>all[i]);if(rt)seq.push(start);
   const r=await fetch("https://router.project-osrm.org/route/v1/driving/"+seq.map(p=>p.lon+","+p.lat).join(";")+"?overview=full&geometries=geojson&steps=false");
   const j=await r.json();if(j.code!=="Ok")throw new Error(j.code);
-  const t=j.routes[0];
-  return{route:seq,legs:t.legs,dist:t.distance,dur:t.duration,approx:false,geo:simp(t.geometry.coordinates)};
+  const t=j.routes[0],res={route:seq,legs:t.legs,dist:t.distance,dur:t.duration,approx:false,geo:simp(t.geometry.coordinates)};
+  /* timp real cu trafic live (TomTom), dacă ai cheie */
+  if(ttKey&&!ttOff&&seq.length<=150){
+    const k="r|"+ttKeyOf(seq),c=ttCache.get(k);let s0=c&&Date.now()-c.t<180000?c.v:null;
+    if(!s0){
+      try{
+        const q=seq.map(p=>p.lat+","+p.lon).join(":"),rr=await fetch("https://api.tomtom.com/routing/1/calculateRoute/"+q+"/json?key="+encodeURIComponent(ttKey)+"&traffic=true&travelMode=car&routeType=fastest");
+        if(!ttBad(rr)&&rr.ok){const jj=await rr.json(),R=jj.routes&&jj.routes[0];if(R&&R.summary){s0={dur:R.summary.travelTimeInSeconds,delay:R.summary.trafficDelayInSeconds||0,legs:(R.legs||[]).map(l=>l.summary.travelTimeInSeconds)};ttCache.set(k,{t:Date.now(),v:s0})}}
+      }catch(e){}
+    }
+    if(s0){res.dur=s0.dur;res.delay=s0.delay;res.live=true;if(s0.legs.length===res.legs.length)res.legs=res.legs.map((l,i)=>({...l,duration:s0.legs[i]}))}
+  }
+  return res;
 }
 function plan(d){clearTimeout(tm);tm=setTimeout(compute,d)}
 async function compute(){
@@ -709,7 +762,7 @@ function showRoute(m,r){
   if(!r){rc.hidden=true;bar.hidden=true;drawMap(m,null);setTimeout(()=>setSnap(snap),0);return}
   rc.hidden=false;bar.hidden=false;
   const n=r.route.length-1;const T0=Date.now(),hm=t=>new Date(t).toLocaleTimeString("ro-RO",{hour:"2-digit",minute:"2-digit"});
-  $("sum").innerHTML="<span><b>"+n+"</b> opriri</span><span><b>"+km(r.dist)+"</b></span>"+(r.dur?"<span><b>"+mn(r.dur)+"</b></span>":"")+(r.approx?'<span>≈ linie dreaptă</span>':"");
+  $("sum").innerHTML="<span><b>"+n+"</b> opriri</span><span><b>"+km(r.dist)+"</b></span>"+(r.dur?"<span><b>"+mn(r.dur)+"</b></span>":"")+(r.delay>=60?"<span>🚦 +"+mn(r.delay)+"</span>":r.live?"<span>🟢 fără întârzieri</span>":"")+(r.approx?'<span>≈ linie dreaptă</span>':"");
   $("stats").innerHTML="<div><b>"+n+"</b><span>opriri</span></div><div><b>"+km(r.dist)+"</b><span>distanță</span></div><div><b>"+(r.dur?mn(r.dur):"—")+"</b><span>sosire "+(r.dur?hm(T0+r.dur*1000):"—")+"</span></div>";
   const first=r.route[0];
   const s0=document.createElement("div");s0.className="stop";s0.style.minHeight="48px";s0.style.cursor="default";
@@ -825,7 +878,7 @@ function recolor(){
     const id=l.id.toLowerCase(),sl=(l["source-layer"]||"").toLowerCase();
     const set=(k,v)=>{try{gm.setPaintProperty(l.id,k,v)}catch(e){}};
     if(l.id==="pts-l"||l.id==="sel-l"){set("text-color",P.tx);set("text-halo-color",P.halo);return}
-    if(/^(rt|nrt|ndone|pts|cl|sel|stops|me|ow|sg|sp)-/.test(l.id))return;
+    if(/^(rt|nrt|ndone|pts|cl|sel|stops|me|ow|sg|sp|tt)-/.test(l.id))return;
     if(l.id==="b3d"||l.type==="fill-extrusion")return;
     if(l.type==="background")set("background-color",P.bg);
     else if(l.type==="fill"){
@@ -857,7 +910,7 @@ function revertEarth(msg){
 function applyEarth(){
   try{
     gm.addSource("sat",{type:"raster",tiles:["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],tileSize:256,maxzoom:19,attribution:"Imagini © Esri, Maxar, Earthstar Geographics"});
-    const L0=gm.getStyle().layers,mine=/^(rt|nrt|ndone|pts|cl|sel|stops|me|ow|sg|sp)-/,first=L0.find(l=>l.type!=="background");
+    const L0=gm.getStyle().layers,mine=/^(rt|nrt|ndone|pts|cl|sel|stops|me|ow|sg|sp|tt)-/,first=L0.find(l=>l.type!=="background");
     gm.addLayer({id:"sat-r",type:"raster",source:"sat"},first&&first.id);
     L0.forEach(l=>{
       if(mine.test(l.id)||l.id==="sat-r"||l.type==="background")return;
@@ -901,6 +954,7 @@ function initMap(){
       gm.addLayer({id:"stops-c",type:"circle",source:"stops",paint:{"circle-radius":14,"circle-color":"#007aff","circle-stroke-color":"#ffffff","circle-stroke-width":3}});
       gm.addLayer({id:"stops-n",type:"symbol",source:"stops",layout:{"text-field":["get","n"],"text-font":ff,"text-size":13,"text-allow-overlap":true,"text-ignore-placement":true},paint:{"text-color":"#ffffff"}});
       gm.addLayer({id:"me-d",type:"circle",source:"me",paint:{"circle-radius":8,"circle-color":"#007aff","circle-stroke-color":"#ffffff","circle-stroke-width":3}});
+      try{trafficApply()}catch(e){}
       try{addSg(ff)}catch(e){toast("Semne: "+e.message,8000)}
       const ea=cfg.earth==="1";recolored=!ea&&cfg.map!=="classic";if(recolored)recolor();if(ea)applyEarth();else styleBuildings();
       gmReady=true;
@@ -909,6 +963,7 @@ function initMap(){
     }catch(e){toast("Eroare straturi hartă: "+e.message,15000);gmReady=true}});
     ["pts-h","sel-c"].forEach(id=>gm.on("click",id,e=>{if(e.features&&e.features.length)openPc(e.features[0].properties.i,true)}));
     gm.on("moveend",()=>{clearTimeout(sgT);sgT=setTimeout(sgFetch,700)});
+    gm.on("error",e=>{const st=e&&e.error&&e.error.status;if(e&&e.sourceId==="tt"&&(st===403||st===429)&&!ttOff){ttOff=true;toast("Trafic: cheie TomTom invalidă sau limita zilnică atinsă.",6000);trafficApply()}});
     ["sg-i","sg-c"].forEach(id=>gm.on("click",id,e=>{const f=e.features&&e.features[0];if(f)toast(SGNAME[f.properties.k]||"Semn",3500)}));
     gm.on("click","sp-c",e=>{const f=e.features&&e.features[0];if(f)toast("Limită de viteză: "+f.properties.v+" km/h",3500)});
     gm.on("click","cl-c",e=>{gm.easeTo({center:e.features[0].geometry.coordinates,zoom:gm.getZoom()+2.2})});
@@ -1311,13 +1366,30 @@ async function sgFetch(){
   try{gm.getSource("ow").setData(sgData.o);gm.getSource("sg").setData(sgData.s);gm.getSource("sp").setData(sgData.p)}catch(x){}
   try{const ts=j.osm3s&&j.osm3s.timestamp_osm_base;const el=$("sgt");if(ts&&el)el.textContent="Ultima actualizare a datelor OSM: "+new Date(ts).toLocaleString("ro-RO")+"."}catch(x){}
 }
+/* ---------- trafic live pe hartă (TomTom Traffic Flow, plăcuțe raster) ---------- */
+let ttKey="",ttOff=false;try{ttKey=(localStorage.getItem("t2tt")||"").trim()}catch(e){}
+function trafficApply(){
+  if(!gm)return;
+  try{if(gm.getLayer("tt-flow"))gm.removeLayer("tt-flow");if(gm.getSource("tt"))gm.removeSource("tt")}catch(e){}
+  if(!ttKey||cfg.tr==="0"||ttOff)return;
+  const bl=gm.getStyle().layers.find(l=>l["source-layer"]==="building"&&l.id!=="b3d-sh"&&l.id!=="b3d-roof");
+  gm.addSource("tt",{type:"raster",tiles:["https://api.tomtom.com/traffic/map/4/tile/flow/relative0/{z}/{x}/{y}.png?key="+encodeURIComponent(ttKey)+"&t="+Math.floor(Date.now()/240000)],tileSize:256,maxzoom:22,attribution:"© TomTom"});
+  gm.addLayer({id:"tt-flow",type:"raster",source:"tt",paint:{"raster-opacity":.9,"raster-fade-duration":0}},bl&&bl.id);
+}
+setInterval(()=>{if(!document.hidden&&ttKey&&cfg.tr!=="0"&&!ttOff)try{trafficApply()}catch(e){}},240000);
+try{
+  const k=$("ttk");k.value=ttKey;
+  k.onchange=()=>{ttKey=k.value.trim();try{localStorage.setItem("t2tt",ttKey)}catch(e){}ttOff=false;ttCache.clear();try{trafficApply()}catch(e){}plan(200)};
+  $("ctr").addEventListener("click",()=>setTimeout(()=>{try{trafficApply()}catch(e){}},60));
+  $("cord").addEventListener("click",()=>setTimeout(()=>plan(150),60));
+}catch(e){}
 /* ---------- setări ---------- */
-let cfg={units:"km",voice:"1",rt:"0",theme:"sys",map:"google",sl:"1",sg:"1",earth:"0"};try{Object.assign(cfg,JSON.parse(localStorage.getItem("traseu_cfg")||"{}"))}catch(e){}
+let cfg={units:"km",voice:"1",rt:"0",theme:"sys",map:"google",sl:"1",sg:"1",tr:"1",ord:"fast",earth:"0"};try{Object.assign(cfg,JSON.parse(localStorage.getItem("traseu_cfg")||"{}"))}catch(e){}
 cfg.earth="0";
 function applyTheme(){const R=document.documentElement,t=cfg.theme,h=new Date().getHours();
   if(t==="sys")R.removeAttribute("data-theme");else R.setAttribute("data-theme",t==="time"?(h>=19||h<7?"dark":"light"):t);applyMapStyle()}
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>applyMapStyle());
-function paintCfg(){[["cu","units"],["cs","sl"],["csg","sg"],["cv","voice"],["cr","rt"],["ct","theme"],["cm","map"]].forEach(([id,k])=>document.querySelectorAll("#"+id+" .pill").forEach(b=>{
+function paintCfg(){[["cu","units"],["cs","sl"],["csg","sg"],["ctr","tr"],["cord","ord"],["cv","voice"],["cr","rt"],["ct","theme"],["cm","map"]].forEach(([id,k])=>document.querySelectorAll("#"+id+" .pill").forEach(b=>{
   b.classList.toggle("on",b.dataset.v===cfg[k]);
   b.onclick=()=>{cfg[k]=b.dataset.v;try{localStorage.setItem("traseu_cfg",JSON.stringify(cfg))}catch(e){}paintCfg();applyTheme();applyMapStyle();const m=M();if(m)render()}}))}
 setInterval(applyTheme,600000);
