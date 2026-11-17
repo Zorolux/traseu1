@@ -255,10 +255,6 @@ h1{font-size:28px}
 #nvr{display:block;font-size:13px;font-weight:500;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:rgba(255,255,255,.62)}
 #nv .nvb button{height:42px;padding:0 4px;border:0;color:#fff;font-size:15px;font-weight:600;background:rgba(255,255,255,.1)}
 #nv .nvb button.on{background:rgba(255,255,255,.26)}
-#nvo,#n3,#nvm{flex:1 1 0;border-radius:0}
-#nvo{border-radius:999px 0 0 999px}
-#nvm{border-radius:0 999px 999px 0}
-#nvo,#n3{border-right:1px solid rgba(255,255,255,.14)!important}
 #nv #nvs{flex:0 0 auto;margin-left:10px;padding:0 20px;border-radius:999px;font-weight:700;background:linear-gradient(135deg,#ff5f6d,#ff2d55)!important;box-shadow:0 4px 16px rgba(255,45,85,.4)}
 #nv #spd{left:14px;bottom:calc(138px + env(safe-area-inset-bottom,0px));width:86px;height:86px;border-radius:50%;background:rgba(20,20,25,.4);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border:2.5px solid rgba(255,255,255,.55);box-shadow:0 6px 22px rgba(0,0,0,.25)}
 #nv #spd b{font-size:34px;font-weight:600;letter-spacing:-1px;color:#fff;text-shadow:0 1px 8px rgba(0,0,0,.4)}
@@ -299,6 +295,41 @@ h1{font-size:28px}
 #nvi{width:48px;height:48px}
 #nvd{font-size:28px}
 #nvx{font-size:19px;margin-top:2px}
+}
+/* ===== panou condus v3: viraj + distanță, 3 chenare jos, meniu lateral ===== */
+.nvc{flex:1;min-width:0}
+.nvh{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+#nvv{font-style:normal;font-size:16px;font-weight:600;color:rgba(255,255,255,.92);background:rgba(255,255,255,.14);padding:3px 11px;border-radius:999px;white-space:nowrap}
+#nv .nvb{padding:12px 14px}
+#nv .nvb>.nvn2{margin-bottom:8px}
+#nv .nvb>.nvrow{flex:1 1 100%;display:flex;gap:8px;align-items:stretch;margin:0;padding:0}
+#nvn{font-size:17px}
+.chip{flex:1 1 0;min-width:0;height:50px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:18px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.12)}
+.chip b{font-size:17px;font-weight:700;line-height:1.1;color:#fff;white-space:nowrap}
+.chip.eta b{font-size:19px}
+.chip small{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.6);margin-top:2px}
+#nv #nvs{flex:0 0 auto;margin:0;height:50px;padding:0 18px;border-radius:999px;font-size:15px}
+#nvmn{position:fixed;right:calc(14px + env(safe-area-inset-right,0px));bottom:calc(132px + env(safe-area-inset-bottom,0px));z-index:58;display:flex;flex-direction:column;align-items:center;gap:10px}
+#nvmo{display:none;flex-direction:column;gap:10px}
+#nvmn.open #nvmo{display:flex}
+#nvmn button{width:52px;height:52px;padding:0;border-radius:50%;border:1px solid rgba(255,255,255,.14);background:rgba(20,20,25,.65);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);color:#fff;font-size:16px;font-weight:700;box-shadow:0 6px 22px rgba(0,0,0,.25)}
+#nvmn #nvmb{font-size:24px;line-height:1}
+#nvmn button.on{background:rgba(255,255,255,.3)}
+#nv #spd{bottom:calc(132px + env(safe-area-inset-bottom,0px))}
+#nv #lim{bottom:calc(142px + env(safe-area-inset-bottom,0px))}
+@media (orientation:landscape) and (max-height:600px){
+#nvv{font-size:13px;padding:2px 9px}
+#nv .nvb>.nvn2{margin-bottom:6px}
+#nvn{font-size:15px}
+.chip{height:42px;border-radius:15px}
+.chip b{font-size:15px}
+.chip.eta b{font-size:16px}
+.chip small{font-size:9px}
+#nv #nvs{height:42px;padding:0 14px;font-size:14px}
+#nvmn{bottom:auto;top:calc(14px + env(safe-area-inset-top,0px));flex-direction:column-reverse}
+#nvmn button{width:46px;height:46px}
+#nv #spd{bottom:calc(14px + env(safe-area-inset-bottom,0px))}
+#nv #lim{bottom:calc(22px + env(safe-area-inset-bottom,0px))}
 }
 </style>
 </head>
@@ -367,11 +398,12 @@ h1{font-size:28px}
 <div id="mt"></div>
 
 <div id="nv" hidden>
-  <div class="nvt"><div id="nvl" hidden></div><span id="nvi">↑</span><div><b id="nvd">—</b><span id="nvx"></span><span id="nvp"></span></div></div>
+  <div class="nvt"><div id="nvl" hidden></div><span id="nvi">↑</span><div class="nvc"><div class="nvh"><b id="nvd">—</b><em id="nvv"></em></div><span id="nvx"></span><span id="nvp"></span></div></div>
   <div id="arr" hidden></div>
   <div id="lim" hidden>50</div>
   <div id="spd"><b>0</b><small>km/h</small></div>
-  <div class="nvb"><div><b id="nvn"></b><span id="nvr"></span></div><button id="nvo">⤢</button><button id="n3">3D</button><button id="nvm">🔊</button><button id="nvs">Oprește</button></div>
+  <div class="nvb"><div class="nvn2"><b id="nvn"></b></div><div class="nvrow"><div class="chip eta"><b id="nve">—</b><small>sosire</small></div><div class="chip"><b id="nvq">—</b><small>rămas</small></div><div class="chip"><b id="nvk">—</b><small>distanță</small></div><button id="nvs">Oprește</button></div></div>
+  <div id="nvmn"><div id="nvmo"><button id="nvo">⤢</button><button id="n3">3D</button><button id="nvm">🔊</button></div><button id="nvmb">⋯</button></div>
 </div>
 
 <div id="sh">
@@ -435,7 +467,7 @@ h1{font-size:28px}
       <div class="opt"><h3>Stil hartă</h3><div class="chips" id="cm"><button class="pill" data-v="google">Google</button><button class="pill" data-v="waze">Waze</button><button class="pill" data-v="classic">Clasic</button></div><div class="m" style="margin-top:6px">Stilurile sunt inspirate din aplicațiile respective, nu copii exacte.</div></div>
       <div class="opt"><h3>Temă</h3><div class="chips" id="ct"><button class="pill" data-v="sys">Sistem</button><button class="pill" data-v="light">Zi</button><button class="pill" data-v="dark">Noapte</button><button class="pill" data-v="time">După oră</button></div><div class="m" style="margin-top:6px">„După oră”: noapte între 19:00 și 07:00.</div></div>
       <div class="opt"><h3>Ajutor</h3><button class="btn l" id="gd">Vezi ghidul</button><button class="btn l" id="rm" style="color:var(--r)">Șterge toate datele</button></div>
-      <div class="m" style="text-align:center;margin-top:12px">Hartă: © OpenStreetMap · OpenFreeMap · MapLibre<br>Versiune: 17 nov · r (trafic + ordine după timp)</div>
+      <div class="m" style="text-align:center;margin-top:12px">Hartă: © OpenStreetMap · OpenFreeMap · MapLibre<br>Versiune: 17 nov · s (panou condus v3)</div>
     </div>
     <div class="vw" id="v-ob" hidden>
       <h2>Bine ai venit 👋</h2>
@@ -1039,6 +1071,16 @@ function lanesHtml(prev){
   return ls.map(l=>{let g="";(l.indications||[]).forEach(ind=>{const a=AN[ind];if(a==null)return;g+='<g transform="rotate('+a+' 12 14)"><path d="M12 14V4M8 8l4-4 4 4"/></g>'});
     return'<svg viewBox="0 0 24 24" fill="none" stroke="'+(l.valid?"#fff":"rgba(255,255,255,.3)")+'" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 23V14"/>'+g+'</svg>'}).join("");
 }
+function turnWord(st){
+  const m=st.maneuver,t=m.type,d=m.modifier;
+  if(t==="arrive")return"destinația";
+  if(/^exit (roundabout|rotary)/.test(t))return"ieși din giratoriu";
+  if(RB.test(t))return m.exit&&ORD[m.exit]?ORD[m.exit]+" ieșire":"giratoriu";
+  if(d==="uturn")return"întoarcere";
+  if(t==="fork")return/left/.test(d||"")?"ține stânga":/right/.test(d||"")?"ține dreapta":"înainte";
+  if(MODT[d])return MODT[d];
+  return"înainte";
+}
 function short(st){if(st.maneuver.type==="arrive")return"Destinație";if(st.name)return st.name;return instr({...st,name:""})}
 const arrow=st=>st.maneuver.type==="arrive"?"⚑":RB.test(st.maneuver.type)?"⟳":ARW[st.maneuver.modifier]||"↑";
 const dm=m=>cfg.units==="mi"?(m>=160?(m/1609.34).toFixed(1)+" mi":Math.round(m*3.281/10)*10+" ft"):m>=1000?(m/1000).toFixed(1)+" km":Math.round(m/10)*10+" m";
@@ -1153,14 +1195,14 @@ function uiStep(){
   while(st&&nav.si<last&&dist(nav.si)<22){nav.si++;st=nav.steps[nav.si]}
   if(!st)return;const k=nav.si,d=Math.max(0,dist(k));
   const n2=nav.steps[k+1];$("nvp").textContent=n2?"Apoi: "+arrow(n2)+" "+instr(n2):"";
-  {const ik=k+"|"+(st.maneuver.location||[]).join(",");if(nav._ik!==ik){nav._ik=ik;$("nvi").innerHTML=arrowSvg(st);const lh=lanesHtml(nav.steps[k-1]),lv=$("nvl");lv.innerHTML=lh;lv.hidden=!lh}}$("nvd").textContent=dm(d);$("nvx").textContent=nav.rr?"Recalculez traseul…":short(st);
+  {const ik=k+"|"+(st.maneuver.location||[]).join(",");if(nav._ik!==ik){nav._ik=ik;$("nvi").innerHTML=arrowSvg(st);const lh=lanesHtml(nav.steps[k-1]),lv=$("nvl");lv.innerHTML=lh;lv.hidden=!lh}}$("nvd").textContent=dm(d);$("nvv").textContent=turnWord(st);$("nvx").textContent=nav.rr?"Recalculez traseul…":short(st);
   const arr=st.maneuver.type==="arrive",far=Math.max(160,Math.min(500,nav.v*14)),near=Math.max(45,Math.min(100,nav.v*4.5));
   if(!arr&&d<far&&d>near+30&&!nav.said[k+"f"]){nav.said[k+"f"]=1;speak("Peste "+(d>=200?Math.round(d/50)*50:Math.round(d/10)*10)+" de metri, "+instr(st))}
   if(!arr&&d<near&&!nav.said[k+"n"]){nav.said[k+"n"]=1;speak(instr(st))}
   const T=nav.tgt;if(arr&&T)$("nvx").textContent="Destinație: "+(T.name||"Start");
   if(T&&!nav.said.dst){const dT=hav(p,T);if(dT<85&&(arr||nav.si>=last-1)){nav.said.dst=1;const rel=((bear(p,T)-hd+540)%360)-180,sd=Math.abs(rel)<25?"în față":rel>0?"pe dreapta":"pe stânga";speak("Destinația este la "+Math.max(10,Math.round(dT/10)*10)+" de metri, "+sd)}}
   let rem=d,tt=d/(nav.v>3?nav.v:9);for(let j=k;j<nav.steps.length;j++){rem+=nav.steps[j].distance;tt+=nav.steps[j].duration}
-  $("nvr").textContent=dm(rem)+" · "+mn(tt)+" · "+new Date(Date.now()+tt*1000).toLocaleTimeString("ro-RO",{hour:"2-digit",minute:"2-digit"});
+  $("nve").textContent=new Date(Date.now()+tt*1000).toLocaleTimeString("ro-RO",{hour:"2-digit",minute:"2-digit"});$("nvq").textContent=mn(tt);$("nvk").textContent=dm(rem);
 }
 function snapTo(p,geo,lo,hi){
   let best=null;const k=Math.cos(p.lat*Math.PI/180);
@@ -1383,6 +1425,7 @@ try{
   $("ctr").addEventListener("click",()=>setTimeout(()=>{try{trafficApply()}catch(e){}},60));
   $("cord").addEventListener("click",()=>setTimeout(()=>plan(150),60));
 }catch(e){}
+try{$("nvmb").onclick=()=>{const q=$("nvmn");q.classList.toggle("open");clearTimeout(q._t);if(q.classList.contains("open"))q._t=setTimeout(()=>q.classList.remove("open"),7000)}}catch(e){}
 /* ---------- setări ---------- */
 let cfg={units:"km",voice:"1",rt:"0",theme:"sys",map:"google",sl:"1",sg:"1",tr:"1",ord:"fast",earth:"0"};try{Object.assign(cfg,JSON.parse(localStorage.getItem("traseu_cfg")||"{}"))}catch(e){}
 cfg.earth="0";
