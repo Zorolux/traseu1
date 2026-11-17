@@ -467,7 +467,7 @@ h1{font-size:28px}
       <div class="opt"><h3>Stil hartă</h3><div class="chips" id="cm"><button class="pill" data-v="google">Google</button><button class="pill" data-v="waze">Waze</button><button class="pill" data-v="classic">Clasic</button><button class="pill" data-v="tomtom">TomTom</button></div><div class="m" style="margin-top:6px">Stilurile Google/Waze sunt inspirate din aplicațiile respective, nu copii exacte. „TomTom" folosește harta și clădirile 3D TomTom, plus traficul live, și cere cheia TomTom din Setări.</div></div>
       <div class="opt"><h3>Temă</h3><div class="chips" id="ct"><button class="pill" data-v="sys">Sistem</button><button class="pill" data-v="light">Zi</button><button class="pill" data-v="dark">Noapte</button><button class="pill" data-v="time">După oră</button></div><div class="m" style="margin-top:6px">„După oră”: noapte între 19:00 și 07:00.</div></div>
       <div class="opt"><h3>Ajutor</h3><button class="btn l" id="gd">Vezi ghidul</button><button class="btn l" id="rm" style="color:var(--r)">Șterge toate datele</button></div>
-      <div class="m" style="text-align:center;margin-top:12px">Hartă: © OpenStreetMap · OpenFreeMap · MapLibre<br>Versiune: 17 nov · t (hartă TomTom)</div>
+      <div class="m" style="text-align:center;margin-top:12px">Hartă: © OpenStreetMap · OpenFreeMap · MapLibre<br>Versiune: 17 nov · u (clădiri 3D TomTom)</div>
     </div>
     <div class="vw" id="v-ob" hidden>
       <h2>Bine ai venit 👋</h2>
@@ -889,6 +889,18 @@ function styleRoads(){
     try{gm.setLayoutProperty(l.id,"line-cap","round");gm.setLayoutProperty(l.id,"line-join","round")}catch(e){}
   });
 }
+/* clădiri ridicate în stilul TomTom: le forțez vizibile, sau le extrud eu din stratul de clădiri al hărții */
+function tomtom3d(){
+  const L=gm.getStyle().layers,ex=L.filter(l=>l.type==="fill-extrusion");
+  if(ex.length){ex.forEach(l=>{try{gm.setLayoutProperty(l.id,"visibility","visible");gm.setLayerZoomRange(l.id,Math.min(14,l.minzoom||14),24);gm.setPaintProperty(l.id,"fill-extrusion-opacity",1)}catch(e){}});toast("TomTom: clădiri 3D active ("+ex.length+" straturi). Înclină harta și dă zoom ≥15.",7000);return}
+  const b=L.find(l=>l.type==="fill"&&l.source&&l["source-layer"]&&/build/i.test(l["source-layer"]+" "+l.id));
+  if(!b){const nm=[...new Set(L.filter(l=>l["source-layer"]).map(l=>l["source-layer"]))].slice(0,14).join(", ");toast("Stilul TomTom nu are strat de clădiri. Straturi: "+nm,14000);return}
+  const dk=isDark(),sy=L.find(l=>l.type==="symbol"),g=n=>["to-number",["get",n],0];
+  const h=["let","a",g("height"),"b",g("render_height"),"c",g("building_height"),["case",[">",["var","a"],0],["var","a"],[">",["var","b"],0],["var","b"],[">",["var","c"],0],["var","c"],12]];
+  const ly={id:"tt-3d",type:"fill-extrusion",source:b.source,"source-layer":b["source-layer"],minzoom:14,paint:{"fill-extrusion-color":dk?"#4a5163":"#d9d6cf","fill-extrusion-height":h,"fill-extrusion-base":0,"fill-extrusion-opacity":.95}};
+  if(b.filter)ly.filter=b.filter;
+  try{gm.addLayer(ly,sy&&sy.id);toast("TomTom: am ridicat clădirile din stratul «"+b["source-layer"]+"». Înclină harta și dă zoom ≥15.",8000)}catch(e){toast("TomTom 3D: "+e.message,9000)}
+}
 function styleBuildings(){
   if(!gm)return;const dark=isDark(),E=bldExprs(dark);
   try{if(gm.getLayer("b3d-roof"))gm.removeLayer("b3d-roof")}catch(e){}
@@ -1005,7 +1017,7 @@ function initMap(){
       gm.addLayer({id:"me-d",type:"circle",source:"me",paint:{"circle-radius":8,"circle-color":"#007aff","circle-stroke-color":"#ffffff","circle-stroke-width":3}});
       try{trafficApply()}catch(e){}
       try{addSg(ff)}catch(e){toast("Semne: "+e.message,8000)}
-      const ea=cfg.earth==="1",tt=curSU&&curSU!==STYLE&&cfg.map==="tomtom";recolored=!ea&&cfg.map!=="classic"&&!tt;if(recolored)recolor();if(ea)applyEarth();else if(!tt)styleBuildings();
+      const ea=cfg.earth==="1",tt=curSU&&curSU!==STYLE&&cfg.map==="tomtom";recolored=!ea&&cfg.map!=="classic"&&!tt;if(recolored)recolor();if(ea)applyEarth();else if(!tt)styleBuildings();else tomtom3d();
       gmReady=true;
       if(typeof nav!=="undefined"&&nav.on&&nav.geo.length){gm.getSource("nrt").setData(rtData());["rt-c","rt-l"].forEach(id=>{try{gm.setLayoutProperty(id,"visibility","none")}catch(e){}})}
       const q=pend||lastDraw;pend=null;if(q)drawMap(q[0],q[1]);
