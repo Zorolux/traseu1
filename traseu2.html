@@ -762,10 +762,10 @@ async function osrm(list,rt){
     if(!s0){
       try{
         const q=seq.map(p=>p.lat+","+p.lon).join(":"),rr=await fetch("https://api.tomtom.com/routing/1/calculateRoute/"+q+"/json?key="+encodeURIComponent(ttKey)+"&traffic=true&travelMode=car&routeType=fastest");
-        if(!ttBad(rr)&&rr.ok){const jj=await rr.json(),R=jj.routes&&jj.routes[0];if(R&&R.summary){s0={dur:R.summary.travelTimeInSeconds,delay:R.summary.trafficDelayInSeconds||0,legs:(R.legs||[]).map(l=>l.summary.travelTimeInSeconds)};ttCache.set(k,{t:Date.now(),v:s0})}}
+        if(!ttBad(rr)&&rr.ok){const jj=await rr.json(),R=jj.routes&&jj.routes[0];if(R&&R.summary){s0={dur:R.summary.travelTimeInSeconds,delay:R.summary.trafficDelayInSeconds||0,legs:(R.legs||[]).map(l=>l.summary.travelTimeInSeconds),legD:(R.legs||[]).map(l=>l.summary.trafficDelayInSeconds||0)};ttCache.set(k,{t:Date.now(),v:s0})}}
       }catch(e){}
     }
-    if(s0){res.dur=s0.dur;res.delay=s0.delay;res.live=true;if(s0.legs.length===res.legs.length)res.legs=res.legs.map((l,i)=>({...l,duration:s0.legs[i]}))}
+    if(s0){res.dur=s0.dur;res.delay=s0.delay;res.live=true;if(s0.legs.length===res.legs.length)res.legs=res.legs.map((l,i)=>({...l,duration:s0.legs[i],delay:(s0.legD||[])[i]||0}))}
   }
   return res;
 }
@@ -781,7 +781,7 @@ async function compute(){
   if(!list.length){m.last=null;save();showRoute(m,null);$("bar").hidden=false;$("sum").innerHTML="<b>🎉 Toate opririle sunt terminate</b>";$("links").innerHTML='<button class="go s" id="rs">Resetează progresul</button>';$("rs").onclick=()=>{maps.forEach(k=>{k.done=[]});dlog=[];save();plan(100)};return}
   try{if(list.length>99)throw 0;res=await osrm(list,m.rt)}catch(e){res=nearest(list,m.rt)}
   if(t!==tok)return;
-  m.last=res;save();if(M()===m)showRoute(m,res);
+  m.last=res;save();if(M()===m){showRoute(m,res);try{delayWatch(res)}catch(e){}}
 }
 function gmUrls(route){
   const pr=route.map(p=>p.lat+","+p.lon),u=[];let s=0;
@@ -794,7 +794,7 @@ function showRoute(m,r){
   if(!r){rc.hidden=true;bar.hidden=true;drawMap(m,null);setTimeout(()=>setSnap(snap),0);return}
   rc.hidden=false;bar.hidden=false;
   const n=r.route.length-1;const T0=Date.now(),hm=t=>new Date(t).toLocaleTimeString("ro-RO",{hour:"2-digit",minute:"2-digit"});
-  $("sum").innerHTML="<span><b>"+n+"</b> opriri</span><span><b>"+km(r.dist)+"</b></span>"+(r.dur?"<span><b>"+mn(r.dur)+"</b></span>":"")+(r.delay>=60?"<span>🚦 +"+mn(r.delay)+"</span>":r.live?"<span>🟢 fără întârzieri</span>":"")+(r.approx?'<span>≈ linie dreaptă</span>':"");
+  $("sum").innerHTML=sumHtml(r);
   $("stats").innerHTML="<div><b>"+n+"</b><span>opriri</span></div><div><b>"+km(r.dist)+"</b><span>distanță</span></div><div><b>"+(r.dur?mn(r.dur):"—")+"</b><span>sosire "+(r.dur?hm(T0+r.dur*1000):"—")+"</span></div>";
   const first=r.route[0];
   const s0=document.createElement("div");s0.className="stop";s0.style.minHeight="48px";s0.style.cursor="default";
@@ -809,7 +809,7 @@ function showRoute(m,r){
     a.innerHTML='<div class="nd'+(back?" s":"")+'"></div><b></b><span class="m"></span>';
     a.querySelector(".nd").textContent=back?"⌂":i;
     a.querySelector("b").textContent=back?"Întoarcere la start":p.name;
-    a.querySelector(".m").textContent=(lg.duration?hm(T0+cum*1000)+" · ":"")+km(lg.distance)+(lg.duration?" · "+mn(lg.duration):"");
+    a.querySelector(".m").textContent=legTxt(lg,cum,T0,hm);
     if(!back){const ck=document.createElement("button");ck.className="ck";ck.textContent="✓";ck.onclick=e=>{e.preventDefault();e.stopPropagation();markDone(m,p)};a.append(ck)}
     if(i===1)a.classList.add("nx");
     res.append(a);
@@ -818,6 +818,7 @@ function showRoute(m,r){
   $("pgi").style.width=(tot?dn/tot*100:0)+"%";$("pgt").textContent=dn+" din "+tot+" terminate";$("undo").hidden=!maps.some(k=>k.done.length);
   const L=$("links");L.innerHTML="";
   if(r.route[1]){const g=document.createElement("button");g.className="go";g.style.cssText="width:100%;border:0";g.textContent="▶ Pornește navigarea";g.onclick=startNav;L.append(g)}
+  if(ttKey&&!ttOff&&r.route[1]){const rb=document.createElement("button");rb.className="go s";rb.style.cssText="width:100%;border:0;margin-top:8px";rb.textContent="🔄 Recalculează cu traficul actual";rb.onclick=()=>{ttCache.clear();toast("Recalculez cu traficul live…",2500);plan(0)};L.append(rb)}
   drawMap(m,r);setTimeout(()=>setSnap(snap),0);
 }
 
@@ -1448,6 +1449,56 @@ function trafficApply(){
   gm.addLayer({id:"tt-flow",type:"raster",source:"tt",paint:{"raster-opacity":.9,"raster-fade-duration":0}},bl&&bl.id);
 }
 setInterval(()=>{if(!document.hidden&&ttKey&&cfg.tr!=="0"&&!ttOff)try{trafficApply()}catch(e){}},240000);
+
+/* ---------- întârzieri din trafic: afișare + verificare periodică + alertă ---------- */
+function legTxt(lg,cum,T0,hm){return (lg.duration?hm(T0+cum*1000)+" · ":"")+km(lg.distance)+(lg.duration?" · "+mn(lg.duration):"")+(lg.delay>=60?" · 🚦 +"+mn(lg.delay):"")}
+function sumHtml(r){
+  const n=r.route.length-1;
+  let d="";
+  if(r.delay>=60){const c=r.delay>=900?"var(--r)":r.delay>=300?"var(--o)":"inherit";d='<span style="color:'+c+'">🚦 +'+mn(r.delay)+' întârziere</span>'}
+  else if(r.live)d="<span>🟢 fără întârzieri</span>";
+  else if(!ttKey)d="<span>ℹ️ fără trafic live (cheie TomTom în Setări)</span>";
+  return "<span><b>"+n+"</b> opriri</span><span><b>"+km(r.dist)+"</b></span>"+(r.dur?"<span><b>"+mn(r.dur)+"</b></span>":"")+d+(r.approx?"<span>≈ linie dreaptă</span>":"");
+}
+function paintLive(r){
+  const T0=Date.now(),hm=t=>new Date(t).toLocaleTimeString("ro-RO",{hour:"2-digit",minute:"2-digit"});
+  $("sum").innerHTML=sumHtml(r);
+  const st=$("stats").children[2];if(st&&r.dur)st.innerHTML="<b>"+mn(r.dur)+"</b><span>sosire "+hm(T0+r.dur*1000)+"</span>";
+  let cum=0;const els=[...$("res").querySelectorAll("a.stop")];
+  r.route.slice(1).forEach((p,i)=>{const lg=r.legs[i];if(!lg)return;cum+=lg.duration||0;const e=els[i],mm=e&&e.querySelector(".m");if(mm)mm.textContent=legTxt(lg,cum,T0,hm)});
+}
+var dBase=0,lcBusy=false,lcAt=0;
+function delayWatch(r){
+  if(!r||!r.live)return;
+  const d=r.delay||0;
+  if(d<dBase)dBase=d;
+  if(d>=300&&d-dBase>=300){
+    dBase=d;
+    let w=-1,wi=-1;r.legs.forEach((l,i)=>{if((l.delay||0)>w){w=l.delay||0;wi=i}});
+    const p=wi>=0&&w>=120&&r.route[wi+1];
+    const t="🚦 Întârziere din trafic: +"+mn(d)+(r.dur?" (sosire ~"+new Date(Date.now()+r.dur*1000).toLocaleTimeString("ro-RO",{hour:"2-digit",minute:"2-digit"})+")":"")+(p&&p.name?". Cel mai afectat: "+p.name:"");
+    toast(t,14000);
+    try{navigator.vibrate&&navigator.vibrate([200,100,200])}catch(e){}
+    try{if(nav.on)speak("Atenție, întârziere din trafic de "+mn(d))}catch(e){}
+  }
+}
+async function liveCheck(){
+  const m=M(),r=m&&m.last;
+  if(!r||!r.live||!ttKey||ttOff||lcBusy||r.route.length<2||r.route.length>150)return;
+  lcBusy=true;
+  try{
+    const q=r.route.map(p=>p.lat+","+p.lon).join(":");
+    const rr=await fetch("https://api.tomtom.com/routing/1/calculateRoute/"+q+"/json?key="+encodeURIComponent(ttKey)+"&traffic=true&travelMode=car&routeType=fastest");
+    if(ttBad(rr)||!rr.ok)return;
+    const jj=await rr.json(),R=jj.routes&&jj.routes[0];
+    if(!R||!R.summary||!R.legs||R.legs.length!==r.legs.length||M()!==m||m.last!==r)return;
+    r.dur=R.summary.travelTimeInSeconds;r.delay=R.summary.trafficDelayInSeconds||0;
+    r.legs=r.legs.map((l,i)=>({...l,duration:R.legs[i].summary.travelTimeInSeconds,delay:R.legs[i].summary.trafficDelayInSeconds||0}));
+    save();paintLive(r);delayWatch(r);
+  }catch(e){}finally{lcBusy=false;lcAt=Date.now()}
+}
+setInterval(()=>{if(!document.hidden)liveCheck()},240000);
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&Date.now()-lcAt>120000)liveCheck()});
 try{
   const k=$("ttk");k.value=ttKey;
   k.onchange=()=>{ttKey=k.value.trim();try{localStorage.setItem("t2tt",ttKey)}catch(e){}ttOff=false;ttCache.clear();try{trafficApply();applyMapStyle()}catch(e){}plan(200)};
