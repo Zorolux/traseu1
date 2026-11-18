@@ -1455,11 +1455,28 @@ async function sgFetch(){
 let ttKey="",ttOff=false;try{ttKey=(localStorage.getItem("t2tt")||"").trim()}catch(e){}
 function trafficApply(){
   if(!gm)return;
-  try{if(gm.getLayer("tt-flow"))gm.removeLayer("tt-flow");if(gm.getSource("tt"))gm.removeSource("tt")}catch(e){}
+  try{["tt-slow","tt-flow"].forEach(id=>{if(gm.getLayer(id))gm.removeLayer(id)});if(gm.getSource("tt"))gm.removeSource("tt")}catch(e){}
   if(!ttKey||cfg.tr==="0"||ttOff||(cfg.map==="tomtom"&&curSU&&curSU!==STYLE))return;
   const bl=gm.getStyle().layers.find(l=>l["source-layer"]==="building"&&l.id!=="b3d-sh"&&l.id!=="b3d-roof");
-  gm.addSource("tt",{type:"raster",tiles:["https://api.tomtom.com/traffic/map/4/tile/flow/relative0/{z}/{x}/{y}.png?key="+encodeURIComponent(ttKey)+"&t="+Math.floor(Date.now()/240000)],tileSize:256,maxzoom:22,attribution:"© TomTom"});
-  gm.addLayer({id:"tt-flow",type:"raster",source:"tt",paint:{"raster-opacity":.9,"raster-fade-duration":0}},bl&&bl.id);
+  const key=encodeURIComponent(ttKey),t=Math.floor(Date.now()/240000);
+  /* dale VECTORIALE: liniile urmăresc exact axa șoselei (fără decalajul lateral al dalelor raster) */
+  try{
+    gm.addSource("tt",{type:"vector",tiles:["https://api.tomtom.com/traffic/map/4/tile/flow/relative/{z}/{x}/{y}.pbf?key="+key+"&t="+t],minzoom:0,maxzoom:22,attribution:"© TomTom"});
+    const lv=["coalesce",["get","traffic_level"],1];
+    const col=["case",["has","road_closure"],"#570000",["step",lv,"#AD0000",0.15,"#FB2D09",0.35,"#FFC105",0.75,"#2AC76A"]];
+    const W=m=>["interpolate",["exponential",1.5],["zoom"],7,.8*m,12,2*m,15,3.4*m,17,5*m,19,8*m,22,16*m];
+    const lay={"line-cap":"round","line-join":"round","line-sort-key":["-",1,lv]};
+    gm.addLayer({id:"tt-flow",type:"line",source:"tt","source-layer":"Traffic flow",minzoom:7,layout:lay,paint:{"line-color":col,"line-width":W(1),"line-offset":0,"line-opacity":.95}},bl&&bl.id);
+    /* tronsoanele aglomerate rămân vizibile și peste traseul albastru (linie mai subțire, pe mijloc) */
+    gm.addLayer({id:"tt-slow",type:"line",source:"tt","source-layer":"Traffic flow",minzoom:10,filter:["any",["has","road_closure"],["<",lv,0.75]],layout:lay,paint:{"line-color":col,"line-width":W(.5),"line-offset":0,"line-opacity":1}},gm.getLayer("me-a")?"me-a":undefined);
+  }catch(e){
+    /* rezervă: dale raster (dacă dalele vectoriale nu pot fi adăugate) */
+    try{["tt-slow","tt-flow"].forEach(id=>{if(gm.getLayer(id))gm.removeLayer(id)});if(gm.getSource("tt"))gm.removeSource("tt")}catch(e2){}
+    try{
+      gm.addSource("tt",{type:"raster",tiles:["https://api.tomtom.com/traffic/map/4/tile/flow/relative0/{z}/{x}/{y}.png?key="+key+"&t="+t],tileSize:256,maxzoom:22,attribution:"© TomTom"});
+      gm.addLayer({id:"tt-flow",type:"raster",source:"tt",paint:{"raster-opacity":.9,"raster-fade-duration":0}},bl&&bl.id);
+    }catch(e3){}
+  }
 }
 setInterval(()=>{if(!document.hidden&&ttKey&&cfg.tr!=="0"&&!ttOff)try{trafficApply()}catch(e){}},240000);
 
