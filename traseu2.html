@@ -467,7 +467,7 @@ h1{font-size:28px}
       <div class="opt"><h3>Stil hartă</h3><div class="chips" id="cm"><button class="pill" data-v="google">Google</button><button class="pill" data-v="waze">Waze</button><button class="pill" data-v="classic">Clasic</button><button class="pill" data-v="tomtom">TomTom</button></div><div class="m" style="margin-top:6px">Stilurile Google/Waze sunt inspirate din aplicațiile respective, nu copii exacte. „TomTom" folosește harta și clădirile 3D TomTom, plus traficul live, și cere cheia TomTom din Setări.</div></div>
       <div class="opt"><h3>Temă</h3><div class="chips" id="ct"><button class="pill" data-v="sys">Sistem</button><button class="pill" data-v="light">Zi</button><button class="pill" data-v="dark">Noapte</button><button class="pill" data-v="time">După oră</button></div><div class="m" style="margin-top:6px">„După oră”: noapte între 19:00 și 07:00.</div></div>
       <div class="opt"><h3>Ajutor</h3><button class="btn l" id="gd">Vezi ghidul</button><button class="btn l" id="rm" style="color:var(--r)">Șterge toate datele</button></div>
-      <div class="m" style="text-align:center;margin-top:12px">Hartă: © OpenStreetMap · OpenFreeMap · MapLibre<br>Versiune: 18 nov · v (trafic live + satelit 3D)</div>
+      <div class="m" style="text-align:center;margin-top:12px">Hartă: © OpenStreetMap · OpenFreeMap · MapLibre<br>Versiune: 17 nov · u (clădiri 3D TomTom)</div>
     </div>
     <div class="vw" id="v-ob" hidden>
       <h2>Bine ai venit 👋</h2>
@@ -964,26 +964,13 @@ function revertEarth(msg){
   if(cfg.earth!=="1"||!gm)return;cfg.earth="0";try{localStorage.setItem("traseu_cfg",JSON.stringify(cfg))}catch(e){}
   $("f4").textContent="🛰";document.documentElement.dataset.ms=cfg.map;gmReady=false;recolored=false;gm.setStyle(baseStyle());toast(msg,10000);
 }
-/* vedere satelit 3D (gratuit): imaginea reală rămâne vizibilă prin volume translucide ridicate din clădirile OSM */
-function earthBuildings(l){
-  const E=bldExprs(false);
-  try{gm.setLayoutProperty(l.id,"visibility","visible");gm.setLayerZoomRange(l.id,14,24)}catch(e){}
-  const P={"fill-extrusion-color":E.wall,"fill-extrusion-height":E.h,"fill-extrusion-base":E.mh,"fill-extrusion-opacity":.72,"fill-extrusion-vertical-gradient":true};
-  Object.keys(P).forEach(k=>{try{gm.setPaintProperty(l.id,k,P[k])}catch(e){}});
-  try{gm.setLight({anchor:"viewport",color:"#fff4e0",intensity:.7,position:[1.5,210,48]})}catch(e){}
-}
 function applyEarth(){
   try{
     gm.addSource("sat",{type:"raster",tiles:["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],tileSize:256,maxzoom:19,attribution:"Imagini © Esri, Maxar, Earthstar Geographics"});
     const L0=gm.getStyle().layers,mine=/^(rt|nrt|ndone|pts|cl|sel|stops|me|ow|sg|sp|tt)-/,first=L0.find(l=>l.type!=="background");
     gm.addLayer({id:"sat-r",type:"raster",source:"sat"},first&&first.id);
-    const bx=L0.find(l=>l.type==="fill-extrusion"&&!mine.test(l.id));
     L0.forEach(l=>{
       if(mine.test(l.id)||l.id==="sat-r"||l.type==="background")return;
-      if(l.type==="fill-extrusion"){
-        if(bx&&l.id===bx.id){try{earthBuildings(l)}catch(e){}}else{try{gm.setLayoutProperty(l.id,"visibility","none")}catch(e){}}
-        return;
-      }
       if(l.type==="symbol"){try{gm.setPaintProperty(l.id,"text-color","#ffffff");gm.setPaintProperty(l.id,"text-halo-color","rgba(0,0,0,.7)");gm.setPaintProperty(l.id,"text-halo-width",1.4)}catch(e){}}
       else{try{gm.setLayoutProperty(l.id,"visibility","none")}catch(e){}}
     });
@@ -1455,28 +1442,11 @@ async function sgFetch(){
 let ttKey="",ttOff=false;try{ttKey=(localStorage.getItem("t2tt")||"").trim()}catch(e){}
 function trafficApply(){
   if(!gm)return;
-  try{["tt-slow","tt-flow"].forEach(id=>{if(gm.getLayer(id))gm.removeLayer(id)});if(gm.getSource("tt"))gm.removeSource("tt")}catch(e){}
+  try{if(gm.getLayer("tt-flow"))gm.removeLayer("tt-flow");if(gm.getSource("tt"))gm.removeSource("tt")}catch(e){}
   if(!ttKey||cfg.tr==="0"||ttOff||(cfg.map==="tomtom"&&curSU&&curSU!==STYLE))return;
   const bl=gm.getStyle().layers.find(l=>l["source-layer"]==="building"&&l.id!=="b3d-sh"&&l.id!=="b3d-roof");
-  const key=encodeURIComponent(ttKey),t=Math.floor(Date.now()/240000);
-  /* dale VECTORIALE: liniile urmăresc exact axa șoselei (fără decalajul lateral al dalelor raster) */
-  try{
-    gm.addSource("tt",{type:"vector",tiles:["https://api.tomtom.com/traffic/map/4/tile/flow/relative/{z}/{x}/{y}.pbf?key="+key+"&t="+t],minzoom:0,maxzoom:22,attribution:"© TomTom"});
-    const lv=["coalesce",["get","traffic_level"],1];
-    const col=["case",["has","road_closure"],"#570000",["step",lv,"#AD0000",0.15,"#FB2D09",0.35,"#FFC105",0.75,"#2AC76A"]];
-    const W=m=>["interpolate",["exponential",1.5],["zoom"],7,.8*m,12,2*m,15,3.4*m,17,5*m,19,8*m,22,16*m];
-    const lay={"line-cap":"round","line-join":"round","line-sort-key":["-",1,lv]};
-    gm.addLayer({id:"tt-flow",type:"line",source:"tt","source-layer":"Traffic flow",minzoom:7,layout:lay,paint:{"line-color":col,"line-width":W(1),"line-offset":0,"line-opacity":.95}},bl&&bl.id);
-    /* tronsoanele aglomerate rămân vizibile și peste traseul albastru (linie mai subțire, pe mijloc) */
-    gm.addLayer({id:"tt-slow",type:"line",source:"tt","source-layer":"Traffic flow",minzoom:10,filter:["any",["has","road_closure"],["<",lv,0.75]],layout:lay,paint:{"line-color":col,"line-width":W(.5),"line-offset":0,"line-opacity":1}},gm.getLayer("me-a")?"me-a":undefined);
-  }catch(e){
-    /* rezervă: dale raster (dacă dalele vectoriale nu pot fi adăugate) */
-    try{["tt-slow","tt-flow"].forEach(id=>{if(gm.getLayer(id))gm.removeLayer(id)});if(gm.getSource("tt"))gm.removeSource("tt")}catch(e2){}
-    try{
-      gm.addSource("tt",{type:"raster",tiles:["https://api.tomtom.com/traffic/map/4/tile/flow/relative0/{z}/{x}/{y}.png?key="+key+"&t="+t],tileSize:256,maxzoom:22,attribution:"© TomTom"});
-      gm.addLayer({id:"tt-flow",type:"raster",source:"tt",paint:{"raster-opacity":.9,"raster-fade-duration":0}},bl&&bl.id);
-    }catch(e3){}
-  }
+  gm.addSource("tt",{type:"raster",tiles:["https://api.tomtom.com/traffic/map/4/tile/flow/relative0/{z}/{x}/{y}.png?key="+encodeURIComponent(ttKey)+"&t="+Math.floor(Date.now()/240000)],tileSize:256,maxzoom:22,attribution:"© TomTom"});
+  gm.addLayer({id:"tt-flow",type:"raster",source:"tt",paint:{"raster-opacity":.9,"raster-fade-duration":0}},bl&&bl.id);
 }
 setInterval(()=>{if(!document.hidden&&ttKey&&cfg.tr!=="0"&&!ttOff)try{trafficApply()}catch(e){}},240000);
 
@@ -1554,7 +1524,6 @@ $("f4").textContent=cfg.earth==="1"?"🗺":"🛰";
 $("f4").onclick=()=>{
   if(!gm)return;cfg.earth=cfg.earth==="1"?"0":"1";try{localStorage.setItem("traseu_cfg",JSON.stringify(cfg))}catch(e){}
   const on=cfg.earth==="1";$("f4").textContent=on?"🗺":"🛰";document.documentElement.dataset.ms=on?"earth":cfg.map;
-  if(on)toast("Satelit 3D: dă zoom ≥15 și înclină harta ca să vezi clădirile.",7000);
   gmReady=false;recolored=false;earthErr=0;gm.once("style.load",()=>gm.easeTo({pitch:on?55:0,duration:900}));gm.setStyle(baseStyle());
   if(on)setTimeout(()=>{if(cfg.earth==="1"&&gm&&gmReady&&!(gm.getSource("sat")&&gm.isSourceLoaded("sat")))revertEarth("Imaginile din satelit nu s-au încărcat. Am revenit la harta obișnuită.")},14000);
 };
