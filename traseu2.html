@@ -185,6 +185,24 @@ h1{font-size:28px}
 #rb .mb[hidden]{display:none}
 #mt{display:none;position:fixed;left:12px;right:12px;top:calc(env(safe-area-inset-top,0px) + 132px);z-index:40;background:var(--glass);-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px);border-radius:18px;padding:12px 14px;font-size:13px;box-shadow:var(--hl),var(--sh)}
 #mt.on{display:block}
+.dly{display:flex;align-items:flex-start;gap:8px;flex:0 0 100%;box-sizing:border-box;width:100%;margin:0 0 8px;padding:9px 12px;border-radius:16px;background:rgba(255,159,10,.16);border:1px solid rgba(255,159,10,.4);font-size:13px;line-height:1.3;font-weight:600;color:var(--o)}
+.dly[hidden]{display:none}
+.dly .t{flex:1;min-width:0;display:block;overflow-wrap:anywhere}
+.dly b{font-weight:800}
+.dly .s{display:block;font-weight:500;font-size:12px;opacity:.9;margin-top:2px;text-transform:none;letter-spacing:0}
+.dly.hi{background:rgba(255,59,48,.14);border-color:rgba(255,59,48,.42);color:var(--r)}
+.dly.ok{background:rgba(52,199,89,.14);border-color:rgba(52,199,89,.4);color:var(--g)}
+#nv .dly{background:rgba(255,159,10,.2);color:#ffb340}
+#nv .nvb>.dly{flex:0 0 100%;margin:0 0 8px}
+#nv .dly b{display:inline;white-space:normal;overflow:visible;text-overflow:clip;font-size:inherit;color:inherit;font-weight:800}
+#nv .dly span{color:inherit;font-size:inherit}
+#nv .dly .s{display:block;font-size:12px;font-weight:500;opacity:.9;margin-top:2px}
+#nv .dly.hi{background:rgba(255,59,48,.22);color:#ff7a70}
+#nv .dly.ok{background:rgba(52,199,89,.2);color:#6fe39a}
+#nv .nvb>#dlyn{position:absolute;left:0;right:0;bottom:calc(100% + 8px);margin:0;flex:none;z-index:2;background:rgba(52,36,12,.92);box-shadow:0 6px 22px rgba(0,0,0,.3);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
+#nv .nvb>#dlyn.hi{background:rgba(70,20,18,.93)}
+#nv .nvb>#dlyn.ok{background:rgba(14,50,28,.93)}
+@media (orientation:portrait){#nv.hasd #spd{bottom:calc(184px + env(safe-area-inset-bottom,0px))}#nv.hasd #lim{bottom:calc(194px + env(safe-area-inset-bottom,0px))}}
 
 /* ---------- landscape (telefon pe orizontală) ---------- */
 :root{--lw:min(44vw,400px)}
@@ -361,6 +379,7 @@ h1{font-size:28px}
 
 <div id="bar" hidden>
   <div id="sum"></div>
+  <div id="dly" class="dly" hidden></div>
   <div id="links"></div>
 </div>
 
@@ -400,7 +419,7 @@ h1{font-size:28px}
   <div id="arr" hidden></div>
   <div id="lim" hidden>50</div>
   <div id="spd"><b>0</b><small>km/h</small></div>
-  <div class="nvb"><div class="nvn2"><b id="nvn"></b></div><div class="nvrow"><div class="chip eta"><b id="nve">—</b><small>sosire</small></div><div class="chip"><b id="nvq">—</b><small>rămas</small></div><div class="chip"><b id="nvk">—</b><small>distanță</small></div><button id="nvs">Oprește</button></div></div>
+  <div class="nvb"><div id="dlyn" class="dly" hidden></div><div class="nvn2"><b id="nvn"></b></div><div class="nvrow"><div class="chip eta"><b id="nve">—</b><small>sosire</small></div><div class="chip"><b id="nvq">—</b><small>rămas</small></div><div class="chip"><b id="nvk">—</b><small>distanță</small></div><button id="nvs">Oprește</button></div></div>
   <div id="nvmn"><div id="nvmo"><button id="nvo">⤢</button><button id="n3">3D</button><button id="nvm">🔊</button></div><button id="nvmb">⋯</button></div>
 </div>
 
@@ -739,6 +758,30 @@ async function ttMatrix(all){
     ttCache.set(k,{t:Date.now(),v:T});return T;
   }catch(e){return null}
 }
+async function ttRoute(seq,extra){
+  const q=seq.map(p=>p.lat+","+p.lon).join(":"),base="https://api.tomtom.com/routing/1/calculateRoute/"+q+"/json?key="+encodeURIComponent(ttKey)+"&traffic=true&travelMode=car&routeType=fastest";
+  let rr=await fetch(base+(extra?"&sectionType=traffic&instructionsType=text":""));
+  if(!rr.ok&&extra&&rr.status!==403&&rr.status!==429)rr=await fetch(base);
+  return rr;
+}
+/* strada cu cea mai mare întârziere din trafic live, pe traseu */
+function ttHot(R){
+  try{
+    const secs=(R.sections||[]).filter(x=>x.sectionType==="TRAFFIC"&&x.delayInSeconds>0),ins=(R.guidance&&R.guidance.instructions)||[];
+    if(!secs.length)return null;
+    const by={},cat={};let top=null;
+    secs.forEach(x=>{
+      let st="";
+      for(let i=0;i<ins.length;i++){if((ins[i].pointIndex||0)<=x.startPointIndex)st=ins[i].street||(ins[i].roadNumbers&&ins[i].roadNumbers[0])||"";else break}
+      by[st]=(by[st]||0)+x.delayInSeconds;
+      if(!cat[st]||x.delayInSeconds>cat[st].d)cat[st]={d:x.delayInSeconds,c:x.simpleCategory||""};
+      if(!top||x.delayInSeconds>top.d)top={d:x.delayInSeconds,c:x.simpleCategory||""};
+    });
+    let best=null;Object.keys(by).forEach(k=>{if(k&&(!best||by[k]>by[best]))best=k});
+    return best?{street:best,delay:by[best],cat:cat[best].c}:{street:"",delay:top.d,cat:top.c};
+  }catch(e){return null}
+}
+const reasonGen=c=>c==="ROAD_WORK"?"lucrărilor":c==="ROAD_CLOSURE"?"unui drum închis":c==="JAM"?"aglomerației":"traficului";
 async function osrmMatrix(all){
   if(all.length>100)return null;
   try{const r=await fetch("https://router.project-osrm.org/table/v1/driving/"+all.map(p=>p.lon+","+p.lat).join(";")+"?annotations=duration"),j=await r.json();return j.code==="Ok"?j.durations:null}catch(e){return null}
@@ -759,11 +802,11 @@ async function osrm(list,rt){
     const k="r|"+ttKeyOf(seq),c=ttCache.get(k);let s0=c&&Date.now()-c.t<180000?c.v:null;
     if(!s0){
       try{
-        const q=seq.map(p=>p.lat+","+p.lon).join(":"),rr=await fetch("https://api.tomtom.com/routing/1/calculateRoute/"+q+"/json?key="+encodeURIComponent(ttKey)+"&traffic=true&travelMode=car&routeType=fastest");
-        if(!ttBad(rr)&&rr.ok){const jj=await rr.json(),R=jj.routes&&jj.routes[0];if(R&&R.summary){s0={dur:R.summary.travelTimeInSeconds,delay:R.summary.trafficDelayInSeconds||0,legs:(R.legs||[]).map(l=>l.summary.travelTimeInSeconds),legD:(R.legs||[]).map(l=>l.summary.trafficDelayInSeconds||0)};ttCache.set(k,{t:Date.now(),v:s0})}}
+        const rr=await ttRoute(seq,true);
+        if(!ttBad(rr)&&rr.ok){const jj=await rr.json(),R=jj.routes&&jj.routes[0];if(R&&R.summary){s0={dur:R.summary.travelTimeInSeconds,delay:R.summary.trafficDelayInSeconds||0,legs:(R.legs||[]).map(l=>l.summary.travelTimeInSeconds),legD:(R.legs||[]).map(l=>l.summary.trafficDelayInSeconds||0),hot:ttHot(R)};ttCache.set(k,{t:Date.now(),v:s0})}}
       }catch(e){}
     }
-    if(s0){res.dur=s0.dur;res.delay=s0.delay;res.live=true;if(s0.legs.length===res.legs.length)res.legs=res.legs.map((l,i)=>({...l,duration:s0.legs[i],delay:(s0.legD||[])[i]||0}))}
+    if(s0){res.dur=s0.dur;res.delay=s0.delay;res.live=true;res.hot=s0.hot||null;if(s0.legs.length===res.legs.length)res.legs=res.legs.map((l,i)=>({...l,duration:s0.legs[i],delay:(s0.legD||[])[i]||0}))}
   }
   return res;
 }
@@ -779,7 +822,7 @@ async function compute(){
   if(!list.length){m.last=null;save();showRoute(m,null);$("bar").hidden=false;$("sum").innerHTML="<b>🎉 Toate opririle sunt terminate</b>";$("links").innerHTML='<button class="go s" id="rs">Resetează progresul</button>';$("rs").onclick=()=>{maps.forEach(k=>{k.done=[]});dlog=[];save();plan(100)};return}
   try{if(list.length>99)throw 0;res=await osrm(list,m.rt)}catch(e){res=nearest(list,m.rt)}
   if(t!==tok)return;
-  m.last=res;save();if(M()===m){showRoute(m,res);try{delayWatch(res)}catch(e){}}
+  m.last=res;save();if(M()===m){showRoute(m,res);try{delayWatch(res,true)}catch(e){}}
 }
 function gmUrls(route){
   const pr=route.map(p=>p.lat+","+p.lon),u=[];let s=0;
@@ -856,13 +899,13 @@ function baseStyle(){curSU=styleUrl();return curSU||FALLBACK}
 /* culori și înălțimi pentru clădiri: pereți, acoperiș colorat, umbră */
 function bldExprs(dark,hx,mhx){
   const h=hx||["coalesce",["get","render_height"],8],mh=mhx||["coalesce",["get","render_min_height"],0];
-  const sd=["floor",["to-number",["id"],["*",h,37]]];
-  const wallLight=["step",h,["match",["%",sd,6],0,"#efe3cf",1,"#e9d7c3",2,"#f0e8d9",3,"#e3dacd",4,"#ecdac8","#e0e3e7"],45,"#cdd2d8"];
-  const wallDark=["step",h,"#3a393e",45,"#30353c"];
-  const roofLight=["step",h,["match",["%",sd,3],0,"#a9533b",1,"#8e4d3d","#77706c"],9,"#8b8884",45,"#a2a7ae"];
-  const roofDark=["step",h,"#5a3a33",9,"#4a4a4d",45,"#555a63"];
+  const wallLight=["step",h,"#efe3cf",6,"#e9d7c3",12,"#e6dccf",25,"#dcdcdc",45,"#cdd2d8"];
+  const wallDark=["step",h,"#69707e",12,"#727a89",25,"#7c8594",45,"#8790a0"];
+  const roofLight=["step",h,"#b05a3f",30,"#9aa0a8"];
+  const roofDark=["step",h,"#a2604f",30,"#8b93a0"];
   const wall=dark?wallDark:["to-color",["get","colour"],wallLight];
-  const top=["max",["-",h,["min",1.6,["*",h,.3]]],["+",mh,.1]];
+  const R=["max",["min",3.2,["*",h,.4]],1.2];
+  const top=["max",["-",h,R],["+",mh,.1]];
   return{h,mh,wall,roof:dark?roofDark:roofLight,top,roofTop:["max",h,["+",mh,.2]]}
 }
 /* clădiri 3D TomTom: nu mă bazez pe stratele 3D ale stilului. Ridic eu footprint-urile din datele de clădiri (tag «height», în metri) */
@@ -883,11 +926,12 @@ function osmBuildings(why){
     if(!gm.getSource("ofm"))gm.addSource("ofm",{type:"vector",url:"https://tiles.openfreemap.org/planet",attribution:"© OpenStreetMap · OpenFreeMap"});
     const E=bldExprs(dark),before=b3dAnchor(gm.getStyle().layers),b={source:"ofm","source-layer":"building",filter:["!=",["get","hide_3d"],true]},op=earth?.72:1;
     if(!earth){
-      const sh=Object.assign({id:"tt-3d-o-s",type:"fill",minzoom:15,paint:{"fill-color":dark?"#000000":"#3a2f25","fill-opacity":dark?.38:.2,"fill-translate-anchor":"map","fill-translate":["interpolate",["linear"],["zoom"],15,["literal",[1,1.5]],19,["literal",[9,11]]]}},b);
+      const sh=Object.assign({id:"tt-3d-o-s",type:"fill",minzoom:15,paint:{"fill-color":dark?"#000000":"#3a2f25","fill-opacity":dark?.5:.2,"fill-translate-anchor":"map","fill-translate":["interpolate",["linear"],["zoom"],15,["literal",[1,1.5]],19,["literal",[9,11]]]}},b);
       try{gm.addLayer(sh,before)}catch(e){sh.paint["fill-translate"]=[4,5];gm.addLayer(sh,before)}
     }
     gm.addLayer(Object.assign({id:"tt-3d-o-w",type:"fill-extrusion",minzoom:15,paint:{"fill-extrusion-color":E.wall,"fill-extrusion-height":E.top,"fill-extrusion-base":E.mh,"fill-extrusion-opacity":op,"fill-extrusion-vertical-gradient":true}},b),before);
     gm.addLayer(Object.assign({id:"tt-3d-o-r",type:"fill-extrusion",minzoom:15,paint:{"fill-extrusion-color":E.roof,"fill-extrusion-height":E.roofTop,"fill-extrusion-base":E.top,"fill-extrusion-opacity":op,"fill-extrusion-vertical-gradient":true}},b),before);
+    L.forEach(l=>{if(l.type==="fill-extrusion"&&!/^tt-3d-/.test(l.id)){try{gm.setLayoutProperty(l.id,"visibility","none")}catch(e){}}});
     gm._b3d=1;
     toast((why?why+" ":"")+"Folosesc clădirile 3D din OpenStreetMap, peste harta TomTom. Înclină harta și dă zoom ≥15.",9000);
   }catch(e){toast("Clădiri 3D: "+e.message,12000)}
@@ -925,7 +969,7 @@ function build3d(earth){
     const b={source:g.source,"source-layer":g.sl};
     try{
       if(!earth){
-        const sh=Object.assign({id:"tt-3d-s"+i,type:"fill",minzoom:15,paint:{"fill-color":dark?"#000000":"#3a2f25","fill-opacity":dark?.38:.2,"fill-translate-anchor":"map","fill-translate":["interpolate",["linear"],["zoom"],15,["literal",[1,1.5]],19,["literal",[9,11]]]}},b);
+        const sh=Object.assign({id:"tt-3d-s"+i,type:"fill",minzoom:15,paint:{"fill-color":dark?"#000000":"#3a2f25","fill-opacity":dark?.5:.2,"fill-translate-anchor":"map","fill-translate":["interpolate",["linear"],["zoom"],15,["literal",[1,1.5]],19,["literal",[9,11]]]}},b);
         try{gm.addLayer(sh,before)}catch(e){sh.paint["fill-translate"]=[4,5];gm.addLayer(sh,before)}
       }
       const op=earth?.72:1;
@@ -938,7 +982,7 @@ function build3d(earth){
   if(!ok){osmBuildings("TomTom: straturile de clădiri nu au putut fi adăugate"+(gm._lastErr?" ("+String(gm._lastErr).slice(0,80)+")":"")+".");return}
   /* ascund stratele 3D proprii ale stilului ca să nu se dubleze */
   L.forEach(l=>{if(l.type==="fill-extrusion"&&!/^tt-3d-/.test(l.id)){try{gm.setLayoutProperty(l.id,"visibility","none")}catch(e){}}});
-  try{gm.setLight(earth?{anchor:"viewport",color:"#fff4e0",intensity:.7,position:[1.5,210,48]}:{anchor:"viewport",color:dark?"#9fb4d6":"#fff1d9",intensity:dark?.35:.62,position:[1.4,205,52]})}catch(e){}
+  try{gm.setLight(earth?{anchor:"viewport",color:"#fff4e0",intensity:.7,position:[1.5,210,48]}:{anchor:"viewport",color:dark?"#c9d6f0":"#fff1d9",intensity:dark?.55:.62,position:[1.4,205,52]})}catch(e){}
   if(!b3dMsg){b3dMsg=true;toast("Clădiri 3D TomTom: "+ok+" straturi. Înclină harta (buton 3D) și dă zoom ≥15.",6000)}
 }
 function diag3d(){
@@ -962,7 +1006,7 @@ function diag3d(){
 let earthErr=0;
 function revertEarth(msg){
   if(cfg.earth!=="1"||!gm)return;cfg.earth="0";try{localStorage.setItem("traseu_cfg",JSON.stringify(cfg))}catch(e){}
-  $("f4").textContent="🛰";gmReady=false;gm.setStyle(baseStyle());toast(msg,10000);
+  $("f4").textContent="🛰";gmReady=false;gm.setStyle(baseStyle(),{diff:false});styleWatch();toast(msg,10000);
 }
 /* satelit: imagine Esri sub harta TomTom, cu clădirile 3D translucide deasupra */
 function applyEarth(){
@@ -978,11 +1022,16 @@ function applyEarth(){
   }catch(e){}
   try{build3d(true)}catch(e){}
 }
+/* dacă style.load nu mai vine (rețea, stil blocat), nu las harta „înghețată": trec pe harta de rezervă */
+function styleWatch(){
+  if(!gm)return;clearTimeout(gm._sw);
+  gm._sw=setTimeout(()=>{if(gm&&!gmReady){curSU=null;gm.setStyle(FALLBACK,{diff:false});toast("Stilul hărții nu s-a încărcat. Folosesc harta de rezervă.",10000)}},15000);
+}
 function applyMapStyle(){
   try{sgVis()}catch(e){}
   if(!gm||!gmReady)return;
   const su=styleUrl();
-  if(su!==curSU){curSU=su;gmReady=false;gm.setStyle(su||FALLBACK)}
+  if(su!==curSU){curSU=su;gmReady=false;gm.setStyle(su||FALLBACK,{diff:false});styleWatch()}
 }
 function toast(t,ms){const e=$("mt");e.textContent=t;e.classList.add("on");clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove("on"),ms||9000)}
 function initMap(){
@@ -994,13 +1043,13 @@ function initMap(){
     gm.on("error",e=>{
       const eu=(e&&e.error&&e.error.url)||"";
       try{const a=window.__errs=window.__errs||[];a.push(((e&&e.error&&e.error.message)||"?").slice(0,80)+(eu?" @"+eu.replace(/key=[^&]+/,"key=***").slice(0,80):"")+((e&&e.error&&e.error.status)?" st="+e.error.status:""));if(a.length>20)a.shift()}catch(x){}
-      if(curSU&&/style\.json/.test(eu)&&!gm._ttf){gm._ttf=1;ttOff=true;curSU=null;gmReady=false;gm.setStyle(FALLBACK);toast("Harta TomTom nu s-a putut încărca (cheie invalidă sau fără acces la Map Display / Assets). Folosesc harta de rezervă OpenStreetMap.",10000);return}
+      if(curSU&&/style\.json/.test(eu)&&!gm._ttf){gm._ttf=1;ttOff=true;curSU=null;gmReady=false;gm.setStyle(FALLBACK,{diff:false});toast("Harta TomTom nu s-a putut încărca (cheie invalidă sau fără acces la Map Display / Assets). Folosesc harta de rezervă OpenStreetMap.",10000);return}
       if(e&&e.sourceId==="sat"&&cfg.earth==="1"&&++earthErr>=3)revertEarth("Imaginile din satelit nu se încarcă. Am revenit la harta obișnuită.");
       const m=(e&&e.error&&e.error.message)||"";gm._lastErr=m;if(!gmReady||/pbf|sprite|style|json/i.test(m))toast("Hartă: "+m.slice(0,150),9000)});
     gm.on("idle",()=>{try{b3dCheck()}catch(e){}});
     setInterval(()=>{try{b3dCheck()}catch(e){}},3000);
     if(!ttKey)setTimeout(()=>toast("Harta TomTom cere cheia TomTom: Setări → Hartă TomTom și trafic live. Până atunci văd harta de rezervă OpenStreetMap.",12000),1500);
-    setTimeout(()=>{if(gm&&!gmReady&&!gm._fb){gm._fb=1;toast("Stilul hărții nu s-a încărcat. Folosesc harta de rezervă (OpenStreetMap).",12000);gm.setStyle(FALLBACK)}},10000);
+    setTimeout(()=>{if(gm&&!gmReady&&!gm._fb){gm._fb=1;toast("Stilul hărții nu s-a încărcat. Folosesc harta de rezervă (OpenStreetMap).",12000);gm.setStyle(FALLBACK,{diff:false})}},10000);
     gm.addControl(new maplibregl.NavigationControl({showZoom:false,visualizePitch:true}),"top-right");
     gm.on("style.load",()=>{try{
       const lay=gm.getStyle().layers,ff=(lay.find(l=>l.type==="symbol"&&l.layout&&l.layout["text-font"])||{layout:{}}).layout["text-font"]||["Noto Sans Regular"];
@@ -1234,7 +1283,9 @@ function uiStep(){
   const T=nav.tgt;if(arr&&T)$("nvx").textContent="Destinație: "+(T.name||"Start");
   if(T&&!nav.said.dst){const dT=hav(p,T);if(dT<85&&(arr||nav.si>=last-1)){nav.said.dst=1;const rel=((bear(p,T)-hd+540)%360)-180,sd=Math.abs(rel)<25?"în față":rel>0?"pe dreapta":"pe stânga";speak("Destinația este la "+Math.max(10,Math.round(dT/10)*10)+" de metri, "+sd)}}
   let rem=d,tt=d/(nav.v>3?nav.v:9);for(let j=k;j<nav.steps.length;j++){rem+=nav.steps[j].distance;tt+=nav.steps[j].duration}
-  $("nve").textContent=new Date(Date.now()+tt*1000).toLocaleTimeString("ro-RO",{hour:"2-digit",minute:"2-digit"});$("nvq").textContent=mn(tt);$("nvk").textContent=dm(rem);
+  nav.oLast=tt;const tv=tt*(nav.tf||1);
+  $("nve").textContent=new Date(Date.now()+tv*1000).toLocaleTimeString("ro-RO",{hour:"2-digit",minute:"2-digit"});$("nvq").textContent=mn(tv);$("nvk").textContent=dm(rem);
+  if(!nav.tfBusy&&Date.now()-(nav.tfAt||0)>120000)navTraffic();
 }
 function snapTo(p,geo,lo,hi){
   let best=null;const k=Math.cos(p.lat*Math.PI/180);
@@ -1288,11 +1339,13 @@ async function startNav(t){
   if(one){if(!manual)await getLoc(true);if(!start){toast("Setează mai întâi locația de start.",6000);openSheet();return}}
   closePc();nav.lim=null;nav.lq=null;nav.al=0;nav.fx=0;nav.pv=null;nav.dOff=0;nav.on=1;nav.busy=0;nav.mute=cfg.voice!=="1"?1:0;nav.ov=0;nav.d3=1;nav.last=null;$("n3").textContent="3D";$("nvm").textContent=nav.mute?"🔇":"🔊";$("sheet").hidden=true;$("fab").hidden=true;$("f4").hidden=$("f3").hidden=true;nav.tgt=one||m.last.route[1];nav.single=!!one;nav.pos=start;nav.v=0;nav.vf=0;nav.free=0;nav.s=0;nav.sf=0;nav.cum=[0];nav.L=0;nav.sM=[];nav.lt=0;nav.ui=0;nav.pi=-1;nav.stillT=0;nav.rr=0;nav.wrong=0;nav.off=0;
   $("nv").hidden=false;$("mapc").classList.add("fs");$("mx").hidden=true;$("nvd").textContent="Se calculează…";$("nvx").textContent="";$("nvn").textContent=nav.tgt.name||"Start";
+  nav.tf=1;nav.tfAt=0;nav.hot=null;nav.dl0=0;nav.o0=0;nav.oLast=0;lastD=null;try{hideDly()}catch(e){}
   try{nav.wl=await navigator.wakeLock.request("screen")}catch(e){}
   try{await navLeg()}catch(e){$("nvd").textContent="Rută indisponibilă";$("nvx").textContent="Verifică internetul";return}
   enterNav(nav.pos||start);
   nav.w=navigator.geolocation.watchPosition(onPos,()=>{$("nvx").textContent="Semnal GPS slab"},{enableHighAccuracy:true,maximumAge:1000,timeout:20000});
   speak("Navigarea a pornit. "+instr(nav.steps[nav.si]));
+  saveNav();navTraffic(true);
 }
 async function onPos(pos){
   if(!nav.on||nav.busy)return;
@@ -1327,7 +1380,7 @@ async function onPos(pos){
     if(T.name)markDone(m,T);clearTimeout(tm);await compute();
     const n=m.last&&m.last.route[1];
     if(!n){stopNav();speak("Toate opririle sunt terminate");return}
-    nav.tgt=n;$("nvn").textContent=n.name||"Start";try{await navLeg(p)}catch(e){}nav.busy=0;return}
+    nav.tgt=n;nav.tf=1;nav.tfAt=0;nav.hot=null;nav.dl0=0;nav.o0=0;lastD=null;try{hideDly()}catch(e){}$("nvn").textContent=n.name||"Start";try{await navLeg(p)}catch(e){}nav.busy=0;return}
   nav.sp=sp;fetchLimit(p);paintLim(sp);
   const dir=(hg!=null&&sn&&sp>3)?Math.abs(((hg-sn.brg+540)%360)-180):0;
   nav.wrong=(dir>120&&sn.d<35)?(nav.wrong||0)+1:0;
@@ -1340,7 +1393,7 @@ async function onPos(pos){
     navLeg(from,hg).catch(()=>{}).finally(()=>{nav.rr=0});
   }
 }
-function stopNav(){nav.single=false;nav.on=0;nav.busy=0;if(nav.w!=null)navigator.geolocation.clearWatch(nav.w);nav.w=null;try{nav.wl&&nav.wl.release()}catch(e){}
+function stopNav(){try{localStorage.removeItem("traseu_nav")}catch(e){}try{hideDly()}catch(e){}nav.single=false;nav.on=0;nav.busy=0;if(nav.w!=null)navigator.geolocation.clearWatch(nav.w);nav.w=null;try{nav.wl&&nav.wl.release()}catch(e){}
   cancelAnimationFrame(nav.raf);cancelAnimationFrame(nav.raf2);clearTimeout(nav.ovt);$("lim").hidden=true;$("spd").classList.remove("over");if(mk3){mk3.remove();mk3=null}if(mkT){mkT.remove();mkT=null}nav.tgtM=null;m3=null;if(gm&&gmReady){gm.getSource("nrt").setData(EMPTY);gm.getSource("ndone").setData(EMPTY);["rt-c","rt-l"].forEach(id=>{try{gm.setLayoutProperty(id,"visibility","visible")}catch(e){}});gm.easeTo({pitch:0,bearing:0,padding:{top:0,bottom:0,left:0,right:0},duration:600})}nav.last=null;nav.ov=0;$("nvo").classList.remove("on");$("sheet").hidden=false;$("fab").hidden=false;$("f4").hidden=$("f3").hidden=false;$("f3").textContent="3D";setSnap(snap,false);$("nv").hidden=true;$("mapc").classList.remove("fs");$("mx").hidden=false;$("mx").textContent="⤢";setTimeout(()=>gm&&gm.resize(),60);try{speechSynthesis.cancel()}catch(e){}}
 $("nvs").onclick=stopNav;$("n3").onclick=()=>{nav.d3=!nav.d3;$("n3").textContent=nav.d3?"3D":"2D"};$("nvm").onclick=()=>{nav.mute=!nav.mute;$("nvm").textContent=nav.mute?"🔇":"🔊"};
 $("mx").onclick=()=>{const c=$("mapc").classList.toggle("fs");$("mx").textContent=c?"✕":"⤢";setTimeout(()=>gm&&gm.resize(),60)};
@@ -1485,32 +1538,98 @@ function paintLive(r){
   let cum=0;const els=[...$("res").querySelectorAll("a.stop")];
   r.route.slice(1).forEach((p,i)=>{const lg=r.legs[i];if(!lg)return;cum+=lg.duration||0;const e=els[i],mm=e&&e.querySelector(".m");if(mm)mm.textContent=legTxt(lg,cum,T0,hm)});
 }
-var dBase=0,lcBusy=false,lcAt=0;
-function delayWatch(r){
-  if(!r||!r.live)return;
-  const d=r.delay||0;
-  if(d<dBase)dBase=d;
-  if(d>=300&&d-dBase>=300){
-    dBase=d;
-    let w=-1,wi=-1;r.legs.forEach((l,i)=>{if((l.delay||0)>w){w=l.delay||0;wi=i}});
-    const p=wi>=0&&w>=120&&r.route[wi+1];
-    const t="🚦 Întârziere din trafic: +"+mn(d)+(r.dur?" (sosire ~"+new Date(Date.now()+r.dur*1000).toLocaleTimeString("ro-RO",{hour:"2-digit",minute:"2-digit"})+")":"")+(p&&p.name?". Cel mai afectat: "+p.name:"");
-    toast(t,14000);
-    try{navigator.vibrate&&navigator.vibrate([200,100,200])}catch(e){}
-    try{if(nav.on)speak("Atenție, întârziere din trafic de "+mn(d))}catch(e){}
-  }
+var lastD=null,lcBusy=false,lcAt=0,dlyT=null;
+function showDly(html,cls,keep){
+  ["dly","dlyn"].forEach(id=>{const e=$(id);if(!e)return;e.className="dly"+(cls?" "+cls:"");e.innerHTML=html;e.hidden=false});
+  try{$("nv").classList.add("hasd")}catch(e){}
+  clearTimeout(dlyT);if(!keep)dlyT=setTimeout(hideDly,25000);
 }
+function hideDly(){clearTimeout(dlyT);try{$("nv").classList.remove("hasd")}catch(e){}["dly","dlyn"].forEach(id=>{const e=$(id);if(e)e.hidden=true})}
+["dly","dlyn"].forEach(id=>{const e=$(id);if(e)e.onclick=hideDly});
+/* când se schimbă ora de sosire din cauza traficului: mesaj încadrat în bara de rută / cardul de navigare */
+function delayWatch(r,fromCompute){
+  if(!r||!r.live)return;
+  if(nav.on&&!r._nav)return;
+  const d=r.delay||0,first=lastD==null,diff=first?d:d-lastD;
+  if(fromCompute&&!first&&diff<120){if(d<lastD)lastD=d;return}
+  if(!first&&diff>-180&&diff<120)return;
+  lastD=d;
+  const eta=new Date(Date.now()+(r.dur||0)*1000).toLocaleTimeString("ro-RO",{hour:"2-digit",minute:"2-digit"});
+  if(diff<=-180){showDly('<span class="t">🟢 Traficul s-a liberat: <b>−'+mn(-diff)+'</b><span class="s">Sosire estimată '+eta+'</span></span>',"ok");return}
+  if(d<120){if(nav.on){const e=$("dlyn");if(e&&!e.hidden&&!e.classList.contains("ok"))hideDly()}return}
+  const st=r.hot&&r.hot.street?String(r.hot.street).replace(/[<>&]/g,""):"",why=reasonGen(r.hot&&r.hot.cat);
+  const inc=first?d:diff,tot=inc<d-30?" · întârziere totală "+mn(d):"";
+  showDly('<span class="t">🚦 <b>+'+mn(inc)+'</b> din cauza '+why+(st?' de pe <b>'+st+'</b>':'')+'<span class="s">Sosire estimată '+eta+tot+'</span></span>',d>=900?"hi":"",!!nav.on);
+  try{navigator.vibrate&&navigator.vibrate([200,100,200])}catch(e){}
+  try{if(nav.on)speak("Atenție, încă "+mn(inc)+" întârziere din cauza "+why+(st?" de pe "+st:"")+".")}catch(e){}
+}
+/* navigare: ora de sosire și timpul rămas urmează traficul live (TomTom), nu doar durata OSRM */
+async function navTraffic(force){
+  if(!nav.on||nav.busy||!ttKey||ttOff||!nav.tgt||!nav.dp||nav.tfBusy)return;
+  if(!force&&Date.now()-(nav.tfAt||0)<120000)return;
+  nav.tfBusy=1;nav.tfAt=Date.now();
+  try{
+    if(!nav.oLast){try{uiStep()}catch(e){}}
+    const a={lat:nav.dp.lat,lon:nav.dp.lon},b=nav.tgt;
+    if(hav(a,b)<40)return;
+    const rr=await ttRoute([a,b],true);
+    if(ttBad(rr)||!rr.ok)return;
+    const jj=await rr.json(),R=jj.routes&&jj.routes[0];
+    if(!R||!R.summary||!nav.on||nav.tgt!==b)return;
+    const tt=R.summary.travelTimeInSeconds,o=nav.oLast||0;
+    if(o>20&&tt>0){nav.tf=Math.max(.4,Math.min(5,tt/o));nav.o0=o}
+    nav.dl0=R.summary.trafficDelayInSeconds||0;nav.hot=ttHot(R);
+    uiStep();
+    const f=nav.o0&&nav.oLast?Math.min(1,nav.oLast/nav.o0):1;
+    delayWatch({live:true,_nav:true,delay:nav.dl0*f,dur:nav.oLast*(nav.tf||1),hot:nav.hot});
+  }catch(e){}finally{nav.tfBusy=0}
+}
+/* ---------- revenire în aplicație + reluare navigare ---------- */
+function saveNav(){
+  try{if(!nav.on||!nav.tgt)return;const m=M();localStorage.setItem("traseu_nav",JSON.stringify({ts:Date.now(),single:!!nav.single,mapId:m&&m.id,tgt:{lat:nav.tgt.lat,lon:nav.tgt.lon,name:nav.tgt.name||""}}))}catch(e){}
+}
+setInterval(()=>{if(nav.on)saveNav()},15000);
+let resumeT=0;
+function resumeApp(){
+  if(Date.now()-resumeT<800)return;resumeT=Date.now();
+  try{if(gm){gm.resize();gm.triggerRepaint()}}catch(e){}
+  try{if(gm&&gmReady&&curSU&&!gm.getSource("rt")){gmReady=false;gm.setStyle(baseStyle(),{diff:false});styleWatch()}}catch(e){}
+  if(!nav.on)return;
+  /* pornesc din nou urmărirea GPS, resetez interpolarea și camera, apoi aliniez poziția la traseu */
+  try{if(nav.w!=null)navigator.geolocation.clearWatch(nav.w)}catch(e){}
+  nav.w=navigator.geolocation.watchPosition(onPos,()=>{$("nvx").textContent="Semnal GPS slab"},{enableHighAccuracy:true,maximumAge:1000,timeout:20000});
+  nav.lt=0;nav.ft=performance.now();nav.pv=null;nav.fx=0;nav.ov=0;nav.busy=0;clearTimeout(nav.ovt);
+  try{$("nvo").classList.remove("on")}catch(e){}
+  cancelAnimationFrame(nav.raf2);nav.raf2=requestAnimationFrame(tick);
+  try{navigator.geolocation.getCurrentPosition(pos=>{if(nav.on)onPos(pos)},()=>{},{enableHighAccuracy:true,maximumAge:5000,timeout:8000})}catch(e){}
+  try{camIntro()}catch(e){}
+  nav.tfAt=0;navTraffic(true);
+}
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)resumeApp()});
+window.addEventListener("pageshow",e=>{if(e.persisted)resumeApp()});
+window.addEventListener("focus",()=>resumeApp());
+/* dacă pagina a fost reîncărcată de sistem cât ai fost în altă aplicație, reiau navigarea singură (maxim 15 minute) */
+setTimeout(async()=>{
+  let o=null;try{o=JSON.parse(localStorage.getItem("traseu_nav")||"null")}catch(e){}
+  if(!o||!o.tgt||Date.now()-o.ts>15*60000||nav.on)return;
+  const m=maps.find(k=>k.id===o.mapId)||M();if(!m)return;cur=m.id;
+  toast("Reiau navigarea către "+(o.tgt.name||"destinație")+"… (Oprește ca să renunți)",6000);
+  try{
+    if(!o.single){await autoLoc();await compute();if(m.last&&m.last.route[1]){await startNav();return}}
+    await startNav(o.tgt);
+  }catch(e){}
+},1500);
 async function liveCheck(){
   const m=M(),r=m&&m.last;
   if(!r||!r.live||!ttKey||ttOff||lcBusy||r.route.length<2||r.route.length>150)return;
   lcBusy=true;
   try{
     const q=r.route.map(p=>p.lat+","+p.lon).join(":");
-    const rr=await fetch("https://api.tomtom.com/routing/1/calculateRoute/"+q+"/json?key="+encodeURIComponent(ttKey)+"&traffic=true&travelMode=car&routeType=fastest");
+    const rr=await ttRoute(r.route,true);
     if(ttBad(rr)||!rr.ok)return;
     const jj=await rr.json(),R=jj.routes&&jj.routes[0];
     if(!R||!R.summary||!R.legs||R.legs.length!==r.legs.length||M()!==m||m.last!==r)return;
-    r.dur=R.summary.travelTimeInSeconds;r.delay=R.summary.trafficDelayInSeconds||0;
+    r.dur=R.summary.travelTimeInSeconds;r.delay=R.summary.trafficDelayInSeconds||0;r.hot=ttHot(R);
     r.legs=r.legs.map((l,i)=>({...l,duration:R.legs[i].summary.travelTimeInSeconds,delay:R.legs[i].summary.trafficDelayInSeconds||0}));
     save();paintLive(r);delayWatch(r);
   }catch(e){}finally{lcBusy=false;lcAt=Date.now()}
@@ -1543,7 +1662,7 @@ $("f4").onclick=()=>{
   if(!gm)return;cfg.earth=cfg.earth==="1"?"0":"1";try{localStorage.setItem("traseu_cfg",JSON.stringify(cfg))}catch(e){}
   const on=cfg.earth==="1";$("f4").textContent=on?"🗺":"🛰";
   if(on)toast("Satelit 3D: dă zoom ≥15 și înclină harta ca să vezi clădirile.",7000);
-  gmReady=false;recolored=false;earthErr=0;gm.once("style.load",()=>gm.easeTo({pitch:on?55:0,duration:900}));gm.setStyle(baseStyle());
+  gmReady=false;recolored=false;earthErr=0;gm.once("style.load",()=>gm.easeTo({pitch:on?55:0,duration:900}));gm.setStyle(baseStyle(),{diff:false});styleWatch();
   if(on)setTimeout(()=>{if(cfg.earth==="1"&&gm&&gmReady&&!(gm.getSource("sat")&&gm.isSourceLoaded("sat")))revertEarth("Imaginile din satelit nu s-au încărcat. Am revenit la harta obișnuită.")},14000);
 };
 $("f3").onclick=()=>{if(!gm)return;const on=gm.getPitch()<10;gm.easeTo({pitch:on?58:0,duration:600});$("f3").textContent=on?"2D":"3D"};
