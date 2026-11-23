@@ -370,13 +370,23 @@ h1{font-size:28px}
 #nvz{position:fixed;right:calc(14px + env(safe-area-inset-right,0px));top:36%;z-index:58;display:flex;flex-direction:column;gap:10px}
 #nvz button{width:52px;height:52px;padding:0;border-radius:50%;border:1px solid rgba(255,255,255,.14);background:rgba(20,20,25,.65);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);color:#fff;font-size:28px;font-weight:500;line-height:1;box-shadow:0 6px 22px rgba(0,0,0,.25);display:grid;place-content:center}
 #nvz button[hidden]{display:none}
-#nvz #nzc{font-size:20px;font-weight:700}
-body.navon .maplibregl-ctrl-zoom-in,body.navon .maplibregl-ctrl-zoom-out{display:none}
+#nvz #nzc{font-size:26px;font-weight:700}
 @media (orientation:landscape) and (max-height:600px){
 .hrow>h1{font-size:18px}
 #pkb{top:calc(env(safe-area-inset-top,0px) + 10px);left:calc(var(--lw) + (100vw - var(--lw))/2)}
 #nvz{top:calc(env(safe-area-inset-top,0px) + 14px);right:calc(70px + env(safe-area-inset-right,0px));flex-direction:row}
 #nvz button{width:46px;height:46px}
+}
+
+#stabs{flex:none;display:flex;gap:2px;margin:0 14px 8px;padding:3px;border-radius:999px;background:var(--as)}
+#stabs button{flex:1;border:0;border-radius:999px;padding:8px 12px;background:transparent;font-size:14px;font-weight:600;color:var(--t);opacity:.7}
+#stabs button.on{background:var(--cs);opacity:1;box-shadow:0 2px 8px rgba(0,0,0,.14),0 0 0 .5px var(--b)}
+#gpsv{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:4px 14px calc(70px + env(safe-area-inset-bottom,0px))}
+#sheet:not(.tg) #gpsv{display:none}
+#sheet.tg #bar,#sheet.tg #main{display:none}
+@media (orientation:landscape) and (max-height:600px){
+#stabs{margin:8px 12px 4px}
+#gpsv{padding:8px 12px calc(20px + env(safe-area-inset-bottom,0px))}
 }
 </style>
 </head>
@@ -388,7 +398,7 @@ body.navon .maplibregl-ctrl-zoom-in,body.navon .maplibregl-ctrl-zoom-out{display
 <div id="top">
   <div class="hrow">
     <h1><span class="lg">🧭</span><span class="tt">Traseu optim</span></h1>
-    <button id="chip"><i class="dot" id="dot"></i><span id="ls">Setează locația</span></button><button id="gpsb" aria-label="GPS liber">🧭</button><button id="stg" aria-label="Setări">⚙︎</button>
+    <button id="chip"><i class="dot" id="dot"></i><span id="ls">Setează locația</span></button><button id="stg" aria-label="Setări">⚙︎</button>
   </div>
   <div id="tabs"></div>
 </div>
@@ -402,6 +412,7 @@ body.navon .maplibregl-ctrl-zoom-in,body.navon .maplibregl-ctrl-zoom-out{display
 </div>
 
 <div id="sheet" hidden><div id="sgr"><i></i></div>
+<div id="stabs"><button data-t="pts" class="on">📍 Puncte</button><button data-t="gps">🧭 GPS</button></div>
 <div id="ask" class="card" hidden style="margin:16px 16px 0">
   <div class="ct"><b>📍 Permite locația</b></div>
   <div id="at" class="m" style="font-size:14px;color:var(--t)"></div>
@@ -436,6 +447,22 @@ body.navon .maplibregl-ctrl-zoom-in,body.navon .maplibregl-ctrl-zoom-out{display
   </div>
 </div>
 
+<div id="gpsv">
+  <div class="card">
+    <div class="ct"><b>GPS liber</b><span class="m">navighează oriunde</span></div>
+    <div class="sb"><input type="search" id="gq" placeholder="Stradă, adresă, loc sau coordonate" autocomplete="off" autocorrect="off" enterkeyhint="search"></div>
+    <button class="btn" id="gsb">🔎 Caută</button>
+    <div class="msg" id="gmm"></div>
+    <div class="res" id="gres"></div>
+  </div>
+  <div class="card">
+    <div class="ct"><b>Alege pe hartă</b></div>
+    <div class="m">Atinge orice stradă sau punct de pe hartă. Poți și să ții apăsat oriunde pe hartă ca să pui o destinație.</div>
+    <button class="btn l" id="gpk">📍 Alege pe hartă</button>
+  </div>
+  <div class="card" id="grc" hidden><div class="ct"><b>Recente</b></div><div class="res" id="grl"></div></div>
+</div>
+
 </div>
 
 <div id="pc">
@@ -457,7 +484,7 @@ body.navon .maplibregl-ctrl-zoom-in,body.navon .maplibregl-ctrl-zoom-out{display
   <div id="lim" hidden>50</div>
   <div id="spd"><b>0</b><small>km/h</small></div>
   <div class="nvb"><div id="dlyn" class="dly" hidden></div><div class="nvn2"><b id="nvn"></b><span id="nvf" hidden></span></div><div class="nvrow"><div class="chip eta"><b id="nve">—</b><small>sosire</small></div><div class="chip"><b id="nvq">—</b><small>rămas</small></div><div class="chip"><b id="nvk">—</b><small>distanță</small></div><button id="nvs">Oprește</button></div></div>
-  <div id="nvz"><button id="nzi" aria-label="Zoom +">+</button><button id="nzo" aria-label="Zoom −">−</button><button id="nzc" hidden>A</button></div>
+  <div id="nvz"><button id="nzc" aria-label="Recentrează" hidden>◎</button></div>
   <div id="nvmn"><div id="nvmo"><button id="nvo">⤢</button><button id="n3">3D</button><button id="nvm">🔊</button></div><button id="nvmb">⋯</button></div>
 </div>
 
@@ -467,7 +494,6 @@ body.navon .maplibregl-ctrl-zoom-in,body.navon .maplibregl-ctrl-zoom-out{display
     <div class="vw" id="v-loc">
     <h2>Locația ta de start</h2>
     <div class="m" id="cur">—</div>
-    <button class="btn" id="gpl" style="margin-top:12px">🧭 GPS liber: navighează la o stradă sau un punct</button>
 
     <div class="opt">
       <h3>1 · GPS exact</h3>
@@ -510,23 +536,6 @@ body.navon .maplibregl-ctrl-zoom-in,body.navon .maplibregl-ctrl-zoom-out{display
       <div class="msg" id="dg" style="white-space:pre-wrap"></div>
     </div>
 
-    </div>
-    <div class="vw" id="v-gps" hidden>
-      <h2>GPS liber</h2>
-      <div class="m">Navighează oriunde, ca într-un GPS obișnuit: caută o stradă, o adresă sau un loc, ori alege direct pe hartă. Navigarea pornește din locația ta GPS.</div>
-      <div class="opt">
-        <h3>Caută</h3>
-        <div class="sb"><input type="search" id="gq" placeholder="Stradă, adresă, loc sau coordonate" autocomplete="off" autocorrect="off" enterkeyhint="search"></div>
-        <button class="btn" id="gsb">🔎 Caută</button>
-        <div class="msg" id="gmm"></div>
-        <div class="res" id="gres"></div>
-      </div>
-      <div class="opt">
-        <h3>Alege pe hartă</h3>
-        <div class="m">Atinge orice stradă sau punct de pe hartă. Poți și să ții apăsat oriunde pe hartă ca să pui o destinație.</div>
-        <button class="btn l" id="gpk">📍 Alege pe hartă</button>
-      </div>
-      <div class="opt" id="grc" hidden><h3>Recente</h3><div class="res" id="grl"></div></div>
     </div>
     <div class="vw" id="v-set" hidden>
       <h2>Setări</h2>
@@ -1136,7 +1145,7 @@ function initMap(){
     setInterval(()=>{try{b3dCheck()}catch(e){}},3000);
     if(!ttKey)setTimeout(()=>toast("Harta TomTom cere cheia TomTom: Setări → Hartă TomTom și trafic live. Până atunci văd harta de rezervă OpenStreetMap.",12000),1500);
     setTimeout(()=>{if(gm&&!gmReady&&!gm._fb){gm._fb=1;toast("Stilul hărții nu s-a încărcat. Folosesc harta de rezervă (OpenStreetMap).",12000);gm.setStyle(FALLBACK,{diff:false})}},10000);
-    gm.addControl(new maplibregl.NavigationControl({showZoom:true,visualizePitch:true}),"top-right");
+    gm.addControl(new maplibregl.NavigationControl({showZoom:false,visualizePitch:true}),"top-right");
     gm.on("style.load",()=>{try{
       const lay=gm.getStyle().layers,ff=(lay.find(l=>l.type==="symbol"&&l.layout&&l.layout["text-font"])||{layout:{}}).layout["text-font"]||["Noto Sans Regular"];
       ["rt","nrt","ndone","tf","sel","stops","me"].forEach(id=>gm.addSource(id,{type:"geojson",data:EMPTY}));gm.addSource("pts",{type:"geojson",data:EMPTY,cluster:true,clusterRadius:42,clusterMaxZoom:13});
@@ -1307,7 +1316,12 @@ function enterNav(a){
   mk3=new maplibregl.Marker({element:el,rotationAlignment:"map",pitchAlignment:"map"}).setLngLat([a.lon,a.lat]).addTo(gm);
   const de=document.createElement("div");de.className="dst";de.innerHTML="<span></span><i>📍</i>";
   mkT=new maplibregl.Marker({element:de,anchor:"bottom"}).setLngLat([nav.tgt.lon,nav.tgt.lat]).addTo(gm);de.firstChild.textContent=nav.tgt.name||"Start";nav.tgtM=nav.tgt;
-  if(!nav.hk){nav.hk=1;const pz=e=>{if(nav.on&&e.originalEvent)holdOv(true)};["dragstart","zoomstart","pitchstart","rotatestart","move"].forEach(n=>gm.on(n,pz))}
+  if(!nav.hk){nav.hk=1;const pz=e=>{if(nav.on&&e.originalEvent)holdOv(true)};["dragstart","zoomstart","pitchstart","rotatestart","move"].forEach(n=>gm.on(n,pz));
+    const cc=gm.getCanvasContainer(),dn=()=>{if(nav.on){nav.touch=1;nav.touchT=performance.now()}},up=e=>{if(!e.touches||e.touches.length===0)nav.touch=0};
+    cc.addEventListener("touchstart",dn,{passive:true});cc.addEventListener("mousedown",dn);
+    ["touchend","touchcancel"].forEach(n=>cc.addEventListener(n,up,{passive:true}));
+    addEventListener("mouseup",()=>{nav.touch=0});
+    cc.addEventListener("wheel",()=>{if(nav.on){nav.touch=1;nav.touchT=performance.now();clearTimeout(nav.wt);nav.wt=setTimeout(()=>{nav.touch=0},250)}},{passive:true})}
   nav.dp={lat:a.lat,lon:a.lon};nav.fp=nav.dp;
   if(nav.geo.length>1)hd=bear({lat:nav.geo[0][0],lon:nav.geo[0][1]},ptAt(Math.min(nav.L,15)));
   nav.fh=hd;
@@ -1359,7 +1373,7 @@ function tick(t){
     nav.lr=t;
     if(mk3){const lp=nav.free?nav.dp:laneShift(nav.dp);mk3.setLngLat([lp.lon,lp.lat]);mk3.setRotation(hd)}
     if(mkT&&T&&nav.tgtM!==T){mkT.setLngLat([T.lon,T.lat]);mkT.getElement().firstChild.textContent=T.name||"Start";nav.tgtM=T}
-    if(m3&&!nav.ov){
+    if(m3&&!nav.ov&&!(nav.touch&&t-(nav.touchT||0)<5000)){
       const k=Math.min(1,(t-nav.i0)/1100),e=k*k*(3-2*k),c0=nav.c0||{lng:nav.dp.lon,lat:nav.dp.lat};
       const tb=(T&&fe>.3)?Math.min(1,Math.max(0,(70-dT)/45))*.5:0,cx=nav.dp.lon+(tb?(T.lon-nav.dp.lon)*tb:0),cy=nav.dp.lat+(tb?(T.lat-nav.dp.lat)*tb:0);
       m3.jumpTo({center:[c0.lng+(cx-c0.lng)*e,c0.lat+(cy-c0.lat)*e],zoom:nav.cz,pitch:nav.cp,bearing:nav.cb,padding:{top:nav.pad,bottom:0,left:nav.padl,right:0}});
@@ -1884,10 +1898,9 @@ $("f4").onclick=()=>{
 };
 $("f3").onclick=()=>{if(!gm)return;const on=gm.getPitch()<10;gm.easeTo({pitch:on?58:0,duration:600});$("f3").textContent=on?"2D":"3D"};
 $("fab").onclick=async()=>{await getLoc(false);if(start&&gm)gm.easeTo({center:[start.lon,start.lat],zoom:15})};
-function zbPaint(){const b=$("nzc");if(!b)return;const on=!!nav.ov||Math.abs(nav.zo||0)>.05;b.hidden=!on;b.textContent=nav.ov?"◎":"A";b.setAttribute("aria-label",nav.ov?"Recentrează":"Zoom automat")}
-function holdOv(user){if(user&&nav.fit){nav.fit=0;$("nvo").classList.remove("on")}if(!nav.ov){nav.ov=1;zbPaint()}clearTimeout(nav.ovt);nav.ovt=setTimeout(endOv,nav.fit?12000:10000)}
-function endOv(){clearTimeout(nav.ovt);if(nav.ov&&!nav.fit&&gm&&nav.zA)nav.zo=Math.max(-5,Math.min(3,gm.getZoom()-nav.zA));nav.ov=0;nav.fit=0;$("nvo").classList.remove("on");camIntro();zbPaint()}
-function navZoom(dz){if(!nav.on||!gm)return;if(nav.ov){holdOv(true);gm.easeTo({zoom:Math.max(3,Math.min(21,gm.getZoom()+dz)),duration:250})}else{nav.zo=Math.max(-5,Math.min(3,(nav.zo||0)+dz));nav.zk=performance.now()+800;zbPaint()}}
+function zbPaint(){const b=$("nzc");if(!b)return;b.hidden=!nav.ov}
+function holdOv(user){if(user&&nav.fit){nav.fit=0;clearTimeout(nav.ovt);$("nvo").classList.remove("on")}if(!nav.ov){nav.ov=1;zbPaint()}}
+function endOv(){clearTimeout(nav.ovt);nav.ov=0;nav.fit=0;$("nvo").classList.remove("on");camIntro();zbPaint()}
 $("nvo").onclick=()=>{if(nav.fit){endOv();return}nav.ov=1;nav.fit=1;$("nvo").classList.add("on");zbPaint();
   if(nav.geo.length){
     if(m3){gm.getSource("nrt").setData(rtData());m3.jumpTo({padding:{top:0,bottom:0,left:0,right:0}});const b=new maplibregl.LngLatBounds();nav.geo.forEach(c=>b.extend([c[1],c[0]]));
@@ -1914,7 +1927,7 @@ $("pct").onclick=()=>{const m=M();if(pcI==null||!m)return;const i=pcI;m.sel.has(
 $("pcb").onclick=()=>{const m=M(),p=m&&m.pts[pcI];if(!p)return;manual=true;setStart(p.lat,p.lon,"Punct: "+p.name);plan(100);closePc()};
 
 /* ---------- panou glisant (3 poziții) ---------- */
-const peek=()=>["sgr","ask","bar"].reduce((a,id)=>a+$(id).offsetHeight,0)+18;
+const peek=()=>["sgr","stabs","ask","bar"].reduce((a,id)=>a+$(id).offsetHeight,0)+18;
 const SN={peek:()=>peek(),half:()=>innerHeight*.5,full:()=>innerHeight*.88};
 let snap="half",dg=null;
 function sheetPx(){return $("sheet").hidden?0:SN[snap]()}
@@ -2010,17 +2023,28 @@ async function revGeo(lat,lon){
   }catch(e){}
   return null;
 }
-async function geoSearch(q){
+async function geoSearch(q,auto){
   const c=gm?gm.getCenter():(start?{lat:start.lat,lng:start.lon}:null);
   if(ttKey&&!ttOff){
     try{
-      const r=await fetch("https://api.tomtom.com/search/2/search/"+encodeURIComponent(q)+".json?key="+encodeURIComponent(ttKey)+"&limit=8&language=ro-RO&typeahead=false"+(c?"&lat="+c.lat.toFixed(4)+"&lon="+c.lng.toFixed(4):""));
+      const r=await fetch("https://api.tomtom.com/search/2/search/"+encodeURIComponent(q)+".json?key="+encodeURIComponent(ttKey)+"&limit=8&language=ro-RO&typeahead="+(auto?"true":"false")+(c?"&lat="+c.lat.toFixed(4)+"&lon="+c.lng.toFixed(4):""));
       if(r.ok){
         const j=await r.json();
         return(j.results||[]).filter(x=>x.position).map(x=>{const a=x.address||{};return{name:(x.poi&&x.poi.name)||stName(a)||a.freeformAddress||"",addr:a.freeformAddress||"",lat:x.position.lat,lon:x.position.lon}});
       }
     }catch(e){}
   }
+  try{
+    const r=await fetch("https://photon.komoot.io/api/?limit=8&q="+encodeURIComponent(q)+(c?"&lat="+c.lat.toFixed(4)+"&lon="+c.lng.toFixed(4):""));
+    if(r.ok){
+      const j=await r.json(),out=(j.features||[]).filter(f=>f.geometry&&f.geometry.coordinates).map(f=>{
+        const p=f.properties||{},st=p.street?p.street+(p.housenumber?" "+p.housenumber:""):"",nm=p.name||st||p.city||"";
+        const addr=[st&&st!==nm?st:"",p.district,p.city&&p.city!==nm?p.city:"",p.state,p.country].filter(Boolean).join(", ");
+        return{name:nm,addr,lat:f.geometry.coordinates[1],lon:f.geometry.coordinates[0]}});
+      if(out.length||auto)return out;
+    }
+  }catch(e){if(auto)throw e}
+  if(auto)return[];
   const vb=c?"&viewbox="+[c.lng-.7,c.lat+.7,c.lng+.7,c.lat-.7].map(v=>v.toFixed(4)).join(","):"";
   const r=await fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=8&accept-language=ro&q="+encodeURIComponent(q)+vb);
   if(!r.ok)throw new Error("HTTP "+r.status);
@@ -2036,18 +2060,21 @@ function gRes(list,box){
     e.append(b,s);e.onclick=()=>setDest(d,{fly:true});box.append(e);
   });
 }
-async function gSearch(){
-  const q=$("gq").value.trim();if(!q)return;
-  const t=++gsTok,msg=$("gmm"),box=$("gres");
-  msg.className="msg";msg.textContent="Se caută…";box.innerHTML="";
+async function gSearch(auto){
+  auto=auto===true;
+  const q=$("gq").value.trim(),t=++gsTok,msg=$("gmm"),box=$("gres");
+  if(!q){msg.textContent="";box.innerHTML="";return}
   const pre=[],c=parseCoords(q);
   if(c)pre.push({name:"Coordonate "+c.lat.toFixed(5)+", "+c.lon.toFixed(5),addr:"Punct după coordonate",lat:c.lat,lon:c.lon});
   const nq=norm(q),loc=[];
   maps.forEach(mm=>mm.pts.forEach(p=>{if(loc.length<4&&norm(p.name).includes(nq))loc.push({name:p.name,addr:"📌 Punct din „"+mm.name+"”",lat:p.lat,lon:p.lon})}));
+  if(auto){if(pre.length||loc.length){gRes([...pre,...loc],box);msg.textContent=""}if(q.length<3||c)return}
+  else{msg.className="msg";msg.textContent="Se caută…";box.innerHTML=""}
   let net=[],err=null;
-  if(!c){try{net=await geoSearch(q)}catch(e){err=e}}
+  if(!c){try{net=await geoSearch(q,auto)}catch(e){err=e}}
   if(t!==gsTok)return;
   const all=[...pre,...loc,...net];
+  if(auto&&!all.length&&err)return;
   gRes(all,box);
   msg.className=all.length?"msg":"msg er";
   msg.textContent=all.length?"":(err?"Căutarea nu a mers (verifică internetul).":"Nimic găsit. Încearcă altfel, de exemplu „stradă, oraș”.");
@@ -2064,19 +2091,30 @@ function addDest(){
   if(i<0){m.pts.push({name:d.name,lat:d.lat,lon:d.lon,desc:d.addr||"",folder:"Adăugat de mine"});i=m.pts.length-1}
   m.sel.add(i);pushRecent(d);exitGps();render();changed();toast("Adăugat la traseu: "+d.name,4000);
 }
-$("gpsb").onclick=()=>openSheet("v-gps");
-$("gpl").onclick=()=>openSheet("v-gps");
-$("emg").onclick=()=>{ensureMap();openSheet("v-gps");getLoc(true).then(ok=>{if(ok&&gm&&start)gm.easeTo({center:[start.lon,start.lat],zoom:14,duration:700})})};
+$("emg").onclick=()=>{ensureMap();sTab("gps");getLoc(true).then(ok=>{if(ok&&gm&&start)gm.easeTo({center:[start.lon,start.lat],zoom:14,duration:700})})};
 $("gsb").onclick=gSearch;
 $("gq").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();gSearch();try{$("gq").blur()}catch(x){}}});
+let gdT=0;
+$("gq").addEventListener("input",()=>{clearTimeout(gdT);gdT=setTimeout(()=>gSearch(true),300)});
+$("gq").addEventListener("focus",()=>{if(!LS()&&snap!=="full")setSnap("full")});
+(function(){const v=window.visualViewport;if(!v)return;
+  const f=()=>{const sh=$("sheet");if(LS())return;const kb=Math.max(0,innerHeight-v.height-v.offsetTop);
+    if(kb>80&&sh.classList.contains("tg")){sh.style.transition="none";sh.style.bottom=kb+"px";sh.style.height=Math.round(v.height-8)+"px";sh.style.transform="none"}
+    else if(sh.style.bottom){sh.style.bottom="";setSnap(snap,false)}};
+  v.addEventListener("resize",f);v.addEventListener("scroll",f)})();
+function sTab(t){
+  const sh=$("sheet");sh.classList.toggle("tg",t==="gps");
+  document.querySelectorAll("#stabs button").forEach(b=>b.classList.toggle("on",b.dataset.t===t));
+  if(t==="gps"){paintGps();if(snap==="peek")setSnap("half")}
+  else{try{$("gq").blur()}catch(e){}}
+}
+document.querySelectorAll("#stabs button").forEach(b=>b.onclick=()=>sTab(b.dataset.t));
 $("gpk").onclick=startPick;
 $("pkx").onclick=exitGps;
 $("dcx").onclick=exitGps;
 $("dcn2").onclick=goDest;
 $("dct").onclick=addDest;
-$("nzi").onclick=()=>navZoom(.7);
-$("nzo").onclick=()=>navZoom(-.7);
-$("nzc").onclick=()=>{if(nav.ov)endOv();else{nav.zo=0;nav.zk=performance.now()+800;zbPaint()}};
+$("nzc").onclick=()=>endOv();
 
 /* ---------- pornire ---------- */
 applyTheme();load();render();setSnap("half",false);fitTop();setTimeout(fitTop,400);paintLoc();paintAsk();try{if(!localStorage.getItem("traseu_seen"))setTimeout(()=>openSheet("v-ob"),700)}catch(e){}
