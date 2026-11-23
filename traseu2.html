@@ -863,7 +863,7 @@ function markDone(m,p){owners(p).forEach(({mm,i})=>{if(mm.sel.has(i)&&!mm.done.i
 $("undo").onclick=()=>{const e=dlog.pop();if(e){const k=e.mm.done.indexOf(e.i);if(k>=0)e.mm.done.splice(k,1)}else{const m=maps.find(k=>k.done.length);if(m)m.done.pop()}save();plan(100)};
 let cfg={units:"km",voice:"1",rt:"0",theme:"sys",sl:"1",sg:"1",tr:"1",ord:"fast",earth:"0"};try{Object.assign(cfg,JSON.parse(localStorage.getItem("traseu_cfg")||"{}"))}catch(e){}
 cfg.earth="0";
-let ttKey="",ttOff=false;try{ttKey=(localStorage.getItem("t2tt")||"").trim()}catch(e){}
+let ttKey="",ttOff=false,ttTrOff=false;try{ttKey=(localStorage.getItem("t2tt")||"").trim()}catch(e){}
 const FALLBACK={version:8,glyphs:"https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf",sources:{osm:{type:"raster",tiles:["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],tileSize:256,maxzoom:19,attribution:"© OpenStreetMap"}},layers:[{id:"osm",type:"raster",source:"osm"}]};
 let gm,gmReady=false,pend=null,lastKey="",lastR=null,gpsAcc=25,lastDraw=null,recolored=false;
 const FC=f=>({type:"FeatureCollection",features:f}),EMPTY=FC([]);
@@ -879,8 +879,8 @@ function isDark(){const t=document.documentElement.getAttribute("data-theme");re
 /* hartă: doar TomTom (stil Orbis, cu traficul live din stil). Fără cheie sau dacă nu se încarcă → rezervă OpenStreetMap */
 function styleUrl(){
   if(!ttKey||ttOff)return null;
-  const d=isDark(),own=cfg.earth==="1";
-  return "https://api.tomtom.com/maps/orbis/assets/styles/0.*/style.json?key="+encodeURIComponent(ttKey)+"&apiVersion=1&map="+(d?"basic_street-dark":"basic_street-light")+(!own&&cfg.tr!=="0"?"&trafficFlow="+(d?"flow_relative-dark":"flow_relative-light"):"");
+  const d=isDark();
+  return "https://api.tomtom.com/maps/orbis/assets/styles/0.*/style.json?key="+encodeURIComponent(ttKey)+"&apiVersion=1&map="+(d?"basic_street-dark":"basic_street-light")+"";
 }
 function baseStyle(){curSU=styleUrl();return curSU||FALLBACK}
 /* culori și înălțimi pentru clădiri: pereți, acoperiș colorat, umbră */
@@ -1051,6 +1051,7 @@ function initMap(){
       const lay=gm.getStyle().layers,ff=(lay.find(l=>l.type==="symbol"&&l.layout&&l.layout["text-font"])||{layout:{}}).layout["text-font"]||["Noto Sans Regular"];
       ["rt","nrt","ndone","sel","stops","me"].forEach(id=>gm.addSource(id,{type:"geojson",data:EMPTY}));gm.addSource("pts",{type:"geojson",data:EMPTY,cluster:true,clusterRadius:42,clusterMaxZoom:13});
       lineLayers("rt","#007aff",4,12);lineLayers("ndone","#8e8e93",6,16);lineLayers("nrt","#007aff",6,16);
+      try{["nrt-c","nrt-l","ndone-c","ndone-l"].forEach(id=>gm.setPaintProperty(id,"line-offset",stopsExpr(LP,v=>v)))}catch(e){}
       gm.addLayer({id:"me-a",type:"circle",source:"me",paint:{"circle-color":"#007aff","circle-opacity":.14,"circle-radius":["interpolate",["exponential",2],["zoom"],0,["get","k0"],22,["*",["get","k0"],4194304]]}});
       const NC=["!",["has","point_count"]];
       gm.addLayer({id:"cl-c",type:"circle",source:"pts",filter:["has","point_count"],paint:{"circle-color":"#8e8e93","circle-opacity":.92,"circle-radius":["step",["get","point_count"],16,10,20,50,25],"circle-stroke-color":"#ffffff","circle-stroke-width":2.5}});
@@ -1072,7 +1073,7 @@ function initMap(){
     }catch(e){toast("Eroare straturi hartă: "+e.message,15000);try{if(cfg.earth!=="1")build3d(false)}catch(x){}gmReady=true;const q2=pend||lastDraw;pend=null;if(q2)try{drawMap(q2[0],q2[1])}catch(x){}}});
     ["pts-h","sel-c"].forEach(id=>gm.on("click",id,e=>{if(e.features&&e.features.length)openPc(e.features[0].properties.i,true)}));
     gm.on("moveend",()=>{clearTimeout(sgT);sgT=setTimeout(sgFetch,700)});
-    gm.on("error",e=>{const st=e&&e.error&&e.error.status;if(e&&e.sourceId==="tt"&&(st===403||st===429)&&!ttOff){ttOff=true;toast("Trafic: cheie TomTom invalidă sau limita zilnică atinsă.",6000);trafficApply()}});
+    gm.on("error",e=>{const st=e&&e.error&&e.error.status;if(e&&e.sourceId==="tt"&&(st===403||st===429)&&!ttTrOff){ttTrOff=true;toast("Trafic: cheie TomTom fără acces la Traffic API sau limita zilnică atinsă.",8000);trafficApply()}});
     ["sg-i","sg-c"].forEach(id=>gm.on("click",id,e=>{const f=e.features&&e.features[0];if(f)toast(SGNAME[f.properties.k]||"Semn",3500)}));
     gm.on("click","sp-c",e=>{const f=e.features&&e.features[0];if(f)toast("Limită de viteză: "+f.properties.v+" km/h",3500)});
     gm.on("click","cl-c",e=>{gm.easeTo({center:e.features[0].geometry.coordinates,zoom:gm.getZoom()+2.2})});
@@ -1254,7 +1255,7 @@ function tick(t){
   nav.pad+=(padT-nav.pad)*kp;nav.padl+=(padL-nav.padl)*kp;
   if(t-nav.lr>=24){
     nav.lr=t;
-    if(mk3){mk3.setLngLat([nav.dp.lon,nav.dp.lat]);mk3.setRotation(hd)}
+    if(mk3){const lp=nav.free?nav.dp:laneShift(nav.dp);mk3.setLngLat([lp.lon,lp.lat]);mk3.setRotation(hd)}
     if(mkT&&T&&nav.tgtM!==T){mkT.setLngLat([T.lon,T.lat]);mkT.getElement().firstChild.textContent=T.name||"Start";nav.tgtM=T}
     if(m3&&!nav.ov){
       const k=Math.min(1,(t-nav.i0)/1100),e=k*k*(3-2*k),c0=nav.c0||{lng:nav.dp.lon,lat:nav.dp.lat};
@@ -1508,33 +1509,73 @@ function refreshRoadData(){
   if(gm.getZoom()<15.5){toast("Apropie harta la nivelul 16 pentru a actualiza datele rutiere.");return}
   sgBox=null;sgFetch();toast("Solicit date rutiere actualizate din OpenStreetMap…",5000);
 }
-/* ---------- trafic live pe hartă (TomTom Traffic Flow, plăcuțe raster) ---------- */
-function trafficApply(){
-  if(!gm)return;
-  try{["tt-slow","tt-flow"].forEach(id=>{if(gm.getLayer(id))gm.removeLayer(id)});if(gm.getSource("tt"))gm.removeSource("tt")}catch(e){}
-  if(!ttKey||cfg.tr==="0"||ttOff||!curSU||cfg.earth!=="1")return;
-  const Ls=gm.getStyle().layers,bl=Ls.find(l=>/^tt-3d-/.test(l.id))||Ls.find(l=>l.type==="symbol"&&!/^(rt|nrt|ndone|pts|cl|sel|stops|me|ow|sg|sp|tt)-/.test(l.id))||Ls.find(l=>l.id==="rt-c");
-  const key=encodeURIComponent(ttKey),t=Math.floor(Date.now()/240000);
-  /* dale VECTORIALE: liniile urmăresc exact axa șoselei (fără decalajul lateral al dalelor raster) */
+/* ---------- trafic live: câte o bandă pe fiecare sens, la scara reală a benzii (dale vectoriale TomTom) ---------- */
+/* LP = decalajul (px) al centrului benzii din dreapta față de axa șoselei (~1,8 m); FLOW_W = lățimea benzii (~3,3 m, minim câțiva px) */
+const LP=[8,0,11,0,13,.3,14,.5,15,1.1,16,2.2,17,4.3,18,8.6,19,17.3,20,34.6,22,138];
+const FLOW_W=[8,1.2,11,2,13,3,14,3.6,15,4.4,16,5.5,17,8,18,15.7,19,31,20,50,22,120];
+function stopsExpr(arr,f){const e=["interpolate",["linear"],["zoom"]];for(let i=0;i<arr.length;i+=2)e.push(arr[i],f(arr[i+1]));return e}
+function lanePx(z){
+  if(z<=LP[0])return LP[1];
+  for(let i=0;i<LP.length-2;i+=2){if(z<=LP[i+2]){const k=(z-LP[i])/(LP[i+2]-LP[i]);return LP[i+1]+(LP[i+3]-LP[i+1])*k}}
+  return LP[LP.length-1];
+}
+/* poziția mașinii, mutată pe banda din dreapta (aceiași pixeli ca la linia traseului) */
+function laneShift(p){
+  if(!gm)return p;
+  const z=gm.getZoom(),mpp=78271.5*Math.cos(p.lat*Math.PI/180)/Math.pow(2,z);
+  return mvp(p,(hd+90)%360,lanePx(z)*mpp);
+}
+function flowRemove(){try{["tt-slow","tt-flow"].forEach(id=>{if(gm.getLayer(id))gm.removeLayer(id)});if(gm.getSource("tt"))gm.removeSource("tt")}catch(e){}}
+function flowAnchor(){
+  const Ls=gm.getStyle().layers;
+  return Ls.find(l=>/^tt-3d-/.test(l.id))||Ls.find(l=>l.type==="symbol"&&!/^(rt|nrt|ndone|pts|cl|sel|stops|me|ow|sg|sp|tt)-/.test(l.id))||Ls.find(l=>l.id==="rt-c");
+}
+function flowRaster(){
+  flowRemove();
   try{
-    gm.addSource("tt",{type:"vector",tiles:["https://api.tomtom.com/traffic/map/4/tile/flow/relative/{z}/{x}/{y}.pbf?key="+key+"&t="+t],minzoom:0,maxzoom:22,attribution:"© TomTom"});
+    const bl=flowAnchor(),key=encodeURIComponent(ttKey),t=Math.floor(Date.now()/240000);
+    gm.addSource("tt",{type:"raster",tiles:["https://api.tomtom.com/traffic/map/4/tile/flow/relative0/{z}/{x}/{y}.png?key="+key+"&t="+t],tileSize:256,maxzoom:22,attribution:"© TomTom"});
+    gm.addLayer({id:"tt-flow",type:"raster",source:"tt",paint:{"raster-opacity":.9,"raster-fade-duration":0}},bl&&bl.id);
+    gm._flw=2;
+  }catch(e){}
+}
+function trafficApply(force){
+  if(!gm)return;
+  if(!ttKey||cfg.tr==="0"||ttOff||ttTrOff||!curSU){flowRemove();return}
+  const key=encodeURIComponent(ttKey),t=Math.floor(Date.now()/240000),url="https://api.tomtom.com/traffic/map/4/tile/flow/relative/{z}/{x}/{y}.pbf?key="+key+"&t="+t;
+  /* reîmprospătare fără clipire: schimb doar adresa dalelor */
+  if(!force&&gm.getSource("tt")&&gm.getSource("tt").type==="vector"&&gm.getLayer("tt-flow")){try{gm.getSource("tt").setTiles([url]);return}catch(e){}}
+  flowRemove();
+  try{
+    const bl=flowAnchor();
+    gm.addSource("tt",{type:"vector",tiles:[url],minzoom:0,maxzoom:22,attribution:"© TomTom"});
     const lv=["coalesce",["get","traffic_level"],1];
     const col=["case",["has","road_closure"],"#570000",["step",lv,"#AD0000",0.15,"#FB2D09",0.35,"#FFC105",0.75,"#2AC76A"]];
-    const W=m=>["interpolate",["exponential",1.5],["zoom"],7,.8*m,12,2*m,15,3.4*m,17,5*m,19,8*m,22,16*m];
-    const lay={"line-cap":"round","line-join":"round","line-sort-key":["-",1,lv]};
-    gm.addLayer({id:"tt-flow",type:"line",source:"tt","source-layer":"Traffic flow",minzoom:7,layout:lay,paint:{"line-color":col,"line-width":W(1),"line-offset":0,"line-opacity":.95}},bl&&bl.id);
-    /* tronsoanele aglomerate rămân vizibile și peste traseul albastru (linie mai subțire, pe mijloc) */
-    gm.addLayer({id:"tt-slow",type:"line",source:"tt","source-layer":"Traffic flow",minzoom:10,filter:["any",["has","road_closure"],["<",lv,0.75]],layout:lay,paint:{"line-color":col,"line-width":W(.5),"line-offset":0,"line-opacity":1}},gm.getLayer("me-a")?"me-a":undefined);
-  }catch(e){
-    /* rezervă: dale raster (dacă dalele vectoriale nu pot fi adăugate) */
-    try{["tt-slow","tt-flow"].forEach(id=>{if(gm.getLayer(id))gm.removeLayer(id)});if(gm.getSource("tt"))gm.removeSource("tt")}catch(e2){}
-    try{
-      gm.addSource("tt",{type:"raster",tiles:["https://api.tomtom.com/traffic/map/4/tile/flow/relative0/{z}/{x}/{y}.png?key="+key+"&t="+t],tileSize:256,maxzoom:22,attribution:"© TomTom"});
-      gm.addLayer({id:"tt-flow",type:"raster",source:"tt",paint:{"raster-opacity":.9,"raster-fade-duration":0}},bl&&bl.id);
-    }catch(e3){}
-  }
+    const lay={"line-cap":"butt","line-join":"round","line-sort-key":["-",1,lv]};
+    const one=["==",["get","traffic_road_coverage"],"one_side"];
+    const mk=(id,mul,minz,filter,before,wc)=>{
+      const L={id,type:"line",source:"tt","source-layer":"Traffic flow",minzoom:minz,layout:lay,paint:{"line-color":col,"line-width":stopsExpr(FLOW_W,v=>v*mul),"line-offset":stopsExpr(LP,v=>wc?["case",one,v,0]:v),"line-opacity":id==="tt-flow"?.95:1}};
+      if(filter)L.filter=filter;gm.addLayer(L,before);
+    };
+    let wc=true;
+    mk("tt-flow",1,7,null,bl&&bl.id,true);
+    if(!gm.getLayer("tt-flow")){wc=false;mk("tt-flow",1,7,null,bl&&bl.id,false)}
+    if(!gm.getLayer("tt-flow"))throw new Error("flow");
+    /* tronsoanele aglomerate rămân vizibile și peste traseul albastru (bandă mai subțire, pe banda mașinii) */
+    mk("tt-slow",.5,10,["any",["has","road_closure"],["<",lv,0.75]],gm.getLayer("me-a")?"me-a":undefined,wc);
+    gm._flw=0;gm._fc=0;
+  }catch(e){flowRaster()}
 }
-setInterval(()=>{if(!document.hidden&&ttKey&&cfg.tr!=="0"&&!ttOff)try{trafficApply()}catch(e){}},240000);
+/* dacă benzile vectoriale nu desenează nimic (nume de strat diferit), trec pe dalele raster */
+function flowCheck(){
+  if(!gm||!gmReady||!curSU||gm._flw||!gm.getLayer("tt-flow")||gm.getLayer("tt-flow").type!=="line")return;
+  if(gm.getZoom()<12.5||(typeof gm.loaded==="function"&&!gm.loaded()))return;
+  if(gm.queryRenderedFeatures({layers:["tt-flow"]}).length>0){gm._flw=2;return}
+  gm._fc=(gm._fc||0)+1;
+  if(gm._fc>=4){gm._flw=1;flowRaster()}
+}
+setInterval(()=>{try{flowCheck()}catch(e){}},4000);
+setInterval(()=>{if(!document.hidden&&ttKey&&cfg.tr!=="0"&&!ttOff&&!ttTrOff)try{trafficApply()}catch(e){}},240000);
 
 /* ---------- întârzieri din trafic: afișare + verificare periodică + alertă ---------- */
 function legTxt(lg,cum,T0,hm){return (lg.duration?hm(T0+cum*1000)+" · ":"")+km(lg.distance)+(lg.duration?" · "+mn(lg.duration):"")+(lg.delay>=60?" · 🚦 +"+mn(lg.delay):"")}
@@ -1696,7 +1737,7 @@ setInterval(()=>{if(!document.hidden)liveCheck()},240000);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden&&Date.now()-lcAt>120000)liveCheck()});
 try{
   const k=$("ttk");k.value=ttKey;
-  k.onchange=()=>{if(gm)gm._ttf=0;ttKey=k.value.trim();try{localStorage.setItem("t2tt",ttKey)}catch(e){}ttOff=false;ttCache.clear();try{trafficApply();applyMapStyle()}catch(e){}plan(200)};
+  k.onchange=()=>{if(gm)gm._ttf=0;ttTrOff=false;ttKey=k.value.trim();try{localStorage.setItem("t2tt",ttKey)}catch(e){}ttOff=false;ttCache.clear();try{trafficApply();applyMapStyle()}catch(e){}plan(200)};
   $("ctr").addEventListener("click",()=>setTimeout(()=>{try{trafficApply()}catch(e){}},60));
   $("cord").addEventListener("click",()=>setTimeout(()=>plan(150),60));
 }catch(e){}
