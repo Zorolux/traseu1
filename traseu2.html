@@ -148,7 +148,7 @@ body{padding-bottom:0;overflow:hidden}
 h1{font-size:28px}
 #chip{max-width:44%}
 .hrow{gap:8px}
-#stg{flex:none;width:40px;height:40px;border-radius:50%;border:0;background:var(--glass);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);box-shadow:var(--hl),0 2px 10px rgba(0,0,0,.08);font-size:19px}
+#stg,#gpsb{flex:none;width:40px;height:40px;border-radius:50%;border:0;background:var(--glass);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);box-shadow:var(--hl),0 2px 10px rgba(0,0,0,.08);font-size:19px}
 #sheet{position:fixed;left:0;right:0;bottom:0;height:88vh;z-index:25;display:flex;flex-direction:column;background:var(--glass);-webkit-backdrop-filter:saturate(180%) blur(34px);backdrop-filter:saturate(180%) blur(34px);border-radius:30px 30px 0 0;box-shadow:var(--hl),0 -10px 40px rgba(0,0,0,.2);transition:transform .38s cubic-bezier(.2,.9,.3,1);will-change:transform}
 #sheet[hidden]{display:none}
 #sgr{flex:none;padding:10px 0 8px;touch-action:none}
@@ -171,17 +171,17 @@ h1{font-size:28px}
 #lim.over{animation:blink .7s infinite}
 @keyframes blink{50%{background:#ffcdd2}}
 #spd.over{background:var(--r)}#spd.over b,#spd.over small{color:#fff}
-#pc{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:35;background:var(--glass);-webkit-backdrop-filter:saturate(180%) blur(34px);backdrop-filter:saturate(180%) blur(34px);border-radius:30px;padding:16px;box-shadow:var(--hl),var(--sh);transform:translateY(150%);transition:transform .4s cubic-bezier(.2,.9,.3,1)}
-#pc.on{transform:none}
+#pc,#dc{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:35;background:var(--glass);-webkit-backdrop-filter:saturate(180%) blur(34px);backdrop-filter:saturate(180%) blur(34px);border-radius:30px;padding:16px;box-shadow:var(--hl),var(--sh);transform:translateY(150%);transition:transform .4s cubic-bezier(.2,.9,.3,1)}
+#pc.on,#dc.on{transform:none}
 .pch{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
 .pch b{display:block;font-size:21px;font-weight:700;letter-spacing:-.5px;overflow-wrap:anywhere}
-#pcx{flex:none;width:32px;height:32px;border-radius:50%;border:0;background:var(--as);color:var(--m);font-weight:700}
+#pcx,#dcx{flex:none;width:32px;height:32px;border-radius:50%;border:0;background:var(--as);color:var(--m);font-weight:700}
 #pcd{max-height:100px;overflow:auto;margin-top:10px;font-size:14px;opacity:.85}
 #pcd:empty{display:none}
 .pca{display:flex;gap:8px;flex-wrap:wrap}
 .pca .btn{flex:1 1 40%;width:auto;margin-top:12px;text-align:center;text-decoration:none;display:block}
 .pca .btn[hidden]{display:none}
-#pcn2{flex-basis:100%;margin-top:14px}
+#pcn2,#dcn2{flex-basis:100%;margin-top:14px}
 #rb{position:fixed;right:14px;z-index:30;display:flex;flex-direction:column;gap:12px;bottom:300px}
 #rb .mb{position:static;width:48px;height:48px;display:grid;place-content:center;font-size:17px;font-weight:700}
 #rb .mb[hidden]{display:none}
@@ -212,7 +212,7 @@ h1{font-size:28px}
  h1{font-size:20px}
  #top{position:fixed;left:0;top:0;width:var(--lw);z-index:26;padding:calc(env(safe-area-inset-top,0px) + 6px) 10px 6px calc(env(safe-area-inset-left,0px) + 12px);border-radius:0 0 22px 0}
  #chip{padding:6px 10px;font-size:12px;max-width:52%}
- #stg{width:34px;height:34px;font-size:17px}
+ #stg,#gpsb{width:34px;height:34px;font-size:17px}
  #tabs{margin-top:6px}
  .tab{padding:6px 12px;font-size:13px}
  #sheet{top:var(--th,92px);bottom:0;left:0;right:auto;width:var(--lw);height:auto!important;transform:none!important;border-radius:0 26px 0 0;padding-left:env(safe-area-inset-left,0px)}
@@ -222,11 +222,11 @@ h1{font-size:28px}
  .card{padding:12px;margin-bottom:10px;border-radius:20px}
  .ct b{font-size:17px}
  #rb{right:calc(14px + env(safe-area-inset-right,0px))}
- #pc{left:calc(var(--lw) + 12px);right:calc(12px + env(safe-area-inset-right,0px));bottom:calc(10px + env(safe-area-inset-bottom,0px));padding:12px 14px;border-radius:24px;max-height:calc(100vh - 20px);overflow:auto}
+ #pc,#dc{left:calc(var(--lw) + 12px);right:calc(12px + env(safe-area-inset-right,0px));bottom:calc(10px + env(safe-area-inset-bottom,0px));padding:12px 14px;border-radius:24px;max-height:calc(100vh - 20px);overflow:auto}
  .pch b{font-size:17px}
  #pcd{max-height:56px;margin-top:6px;font-size:13px}
  .pca .btn{padding:10px;margin-top:8px}
- #pcn2{margin-top:8px}
+ #pcn2,#dcn2{margin-top:8px}
  #mt{left:calc(var(--lw) + 12px);right:12px;top:calc(env(safe-area-inset-top,0px) + 10px)}
  .maplibregl-ctrl-top-right,.maplibregl-ctrl-top-left{margin-top:calc(env(safe-area-inset-top,0px) + 10px)}
  #sp{left:max(8px,calc((100vw - 560px)/2));right:max(8px,calc((100vw - 560px)/2));max-height:94vh;bottom:4px;border-radius:30px}
@@ -355,6 +355,29 @@ h1{font-size:28px}
 #nv #spd{bottom:calc(14px + env(safe-area-inset-bottom,0px))}
 #nv #lim{bottom:calc(22px + env(safe-area-inset-bottom,0px))}
 }
+
+/* ===== GPS liber + zoom manual în navigare ===== */
+.hrow>h1{flex:none;white-space:nowrap;font-size:22px}
+.hrow #chip{flex:0 1 auto;min-width:0}
+.gi{display:block;padding:12px 4px;cursor:pointer;box-shadow:0 .5px 0 var(--b)}
+.gi:last-child{box-shadow:none}
+.gi:active{opacity:.5}
+.gi b{display:block;font-weight:600;overflow-wrap:anywhere}
+.gi .m{display:block;margin-top:1px;overflow-wrap:anywhere}
+#pkb{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 128px);z-index:45;display:flex;align-items:center;gap:10px;max-width:92vw;padding:9px 10px 9px 16px;border-radius:999px;background:var(--glass);-webkit-backdrop-filter:saturate(180%) blur(30px);backdrop-filter:saturate(180%) blur(30px);box-shadow:var(--hl),var(--sh);font-size:14px;font-weight:600}
+#pkb[hidden]{display:none}
+#pkb button{flex:none;width:28px;height:28px;border:0;border-radius:50%;background:var(--as);color:var(--m);font-weight:700}
+#nvz{position:fixed;right:calc(14px + env(safe-area-inset-right,0px));top:36%;z-index:58;display:flex;flex-direction:column;gap:10px}
+#nvz button{width:52px;height:52px;padding:0;border-radius:50%;border:1px solid rgba(255,255,255,.14);background:rgba(20,20,25,.65);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);color:#fff;font-size:28px;font-weight:500;line-height:1;box-shadow:0 6px 22px rgba(0,0,0,.25);display:grid;place-content:center}
+#nvz button[hidden]{display:none}
+#nvz #nzc{font-size:20px;font-weight:700}
+body.navon .maplibregl-ctrl-zoom-in,body.navon .maplibregl-ctrl-zoom-out{display:none}
+@media (orientation:landscape) and (max-height:600px){
+.hrow>h1{font-size:18px}
+#pkb{top:calc(env(safe-area-inset-top,0px) + 10px);left:calc(var(--lw) + (100vw - var(--lw))/2)}
+#nvz{top:calc(env(safe-area-inset-top,0px) + 14px);right:calc(70px + env(safe-area-inset-right,0px));flex-direction:row}
+#nvz button{width:46px;height:46px}
+}
 </style>
 </head>
 <body>
@@ -365,7 +388,7 @@ h1{font-size:28px}
 <div id="top">
   <div class="hrow">
     <h1><span class="lg">🧭</span><span class="tt">Traseu optim</span></h1>
-    <button id="chip"><i class="dot" id="dot"></i><span id="ls">Setează locația</span></button><button id="stg" aria-label="Setări">⚙︎</button>
+    <button id="chip"><i class="dot" id="dot"></i><span id="ls">Setează locația</span></button><button id="gpsb" aria-label="GPS liber">🧭</button><button id="stg" aria-label="Setări">⚙︎</button>
   </div>
   <div id="tabs"></div>
 </div>
@@ -375,6 +398,7 @@ h1{font-size:28px}
   <h2>Începe cu o hartă</h2>
   <p>Încarcă un fișier KMZ sau KML.<br>Fiecare hartă apare ca tab.</p>
   <label class="big" for="f">＋ Adaugă hartă</label>
+  <div style="margin-top:14px"><button class="pill" id="emg">🧭 Folosește ca GPS, fără fișier</button></div>
 </div>
 
 <div id="sheet" hidden><div id="sgr"><i></i></div>
@@ -420,6 +444,11 @@ h1{font-size:28px}
   <div class="pca"><button class="btn" id="pcn2">🧭 Navighează</button><button class="btn l" id="pct">Adaugă la traseu</button><button class="btn l" id="pcb">Start de aici</button><a class="btn l" id="pcp" hidden>Sună</a></div>
 </div>
 
+<div id="dc">
+  <div class="pch"><div><b id="dcn"></b><span class="m" id="dcs"></span></div><button id="dcx">✕</button></div>
+  <div class="pca"><button class="btn" id="dcn2">🧭 Navighează</button><button class="btn l" id="dct">Adaugă la traseu</button></div>
+</div>
+<div id="pkb" hidden><span>📍 Atinge harta ca să alegi destinația</span><button id="pkx" aria-label="Renunță">✕</button></div>
 <div id="mt"></div>
 
 <div id="nv" hidden>
@@ -428,6 +457,7 @@ h1{font-size:28px}
   <div id="lim" hidden>50</div>
   <div id="spd"><b>0</b><small>km/h</small></div>
   <div class="nvb"><div id="dlyn" class="dly" hidden></div><div class="nvn2"><b id="nvn"></b><span id="nvf" hidden></span></div><div class="nvrow"><div class="chip eta"><b id="nve">—</b><small>sosire</small></div><div class="chip"><b id="nvq">—</b><small>rămas</small></div><div class="chip"><b id="nvk">—</b><small>distanță</small></div><button id="nvs">Oprește</button></div></div>
+  <div id="nvz"><button id="nzi" aria-label="Zoom +">+</button><button id="nzo" aria-label="Zoom −">−</button><button id="nzc" hidden>A</button></div>
   <div id="nvmn"><div id="nvmo"><button id="nvo">⤢</button><button id="n3">3D</button><button id="nvm">🔊</button></div><button id="nvmb">⋯</button></div>
 </div>
 
@@ -437,6 +467,7 @@ h1{font-size:28px}
     <div class="vw" id="v-loc">
     <h2>Locația ta de start</h2>
     <div class="m" id="cur">—</div>
+    <button class="btn" id="gpl" style="margin-top:12px">🧭 GPS liber: navighează la o stradă sau un punct</button>
 
     <div class="opt">
       <h3>1 · GPS exact</h3>
@@ -479,6 +510,23 @@ h1{font-size:28px}
       <div class="msg" id="dg" style="white-space:pre-wrap"></div>
     </div>
 
+    </div>
+    <div class="vw" id="v-gps" hidden>
+      <h2>GPS liber</h2>
+      <div class="m">Navighează oriunde, ca într-un GPS obișnuit: caută o stradă, o adresă sau un loc, ori alege direct pe hartă. Navigarea pornește din locația ta GPS.</div>
+      <div class="opt">
+        <h3>Caută</h3>
+        <div class="sb"><input type="search" id="gq" placeholder="Stradă, adresă, loc sau coordonate" autocomplete="off" autocorrect="off" enterkeyhint="search"></div>
+        <button class="btn" id="gsb">🔎 Caută</button>
+        <div class="msg" id="gmm"></div>
+        <div class="res" id="gres"></div>
+      </div>
+      <div class="opt">
+        <h3>Alege pe hartă</h3>
+        <div class="m">Atinge orice stradă sau punct de pe hartă. Poți și să ții apăsat oriunde pe hartă ca să pui o destinație.</div>
+        <button class="btn l" id="gpk">📍 Alege pe hartă</button>
+      </div>
+      <div class="opt" id="grc" hidden><h3>Recente</h3><div class="res" id="grl"></div></div>
     </div>
     <div class="vw" id="v-set" hidden>
       <h2>Setări</h2>
@@ -688,7 +736,7 @@ async function autoLoc(){
   if(!ok&&!manual&&(!start||start.src.startsWith("≈")||Date.now()-start.t>2*3600e3))ok=await ipLoc();
   return ok;
 }
-function openSheet(v){v=v||"v-loc";document.querySelectorAll(".vw").forEach(x=>x.hidden=x.id!==v);if(v==="v-loc")paintLoc();if(v==="v-set")paintCfg();$("sh").classList.add("on")}
+function openSheet(v){v=v||"v-loc";document.querySelectorAll(".vw").forEach(x=>x.hidden=x.id!==v);if(v==="v-loc")paintLoc();if(v==="v-set")paintCfg();if(v==="v-gps")paintGps();$("sh").classList.add("on")}
 function closeSheet(){$("sh").classList.remove("on")}
 $("chip").onclick=()=>{openSheet();manual=false;gpsOk=null;getLoc(false).then(ok=>{if(ok){setTimeout(closeSheet,700);plan(100)}})};$("close").onclick=closeSheet;
 $("sh").onclick=e=>{if(e.target===$("sh"))closeSheet()};
@@ -1088,7 +1136,7 @@ function initMap(){
     setInterval(()=>{try{b3dCheck()}catch(e){}},3000);
     if(!ttKey)setTimeout(()=>toast("Harta TomTom cere cheia TomTom: Setări → Hartă TomTom și trafic live. Până atunci văd harta de rezervă OpenStreetMap.",12000),1500);
     setTimeout(()=>{if(gm&&!gmReady&&!gm._fb){gm._fb=1;toast("Stilul hărții nu s-a încărcat. Folosesc harta de rezervă (OpenStreetMap).",12000);gm.setStyle(FALLBACK,{diff:false})}},10000);
-    gm.addControl(new maplibregl.NavigationControl({showZoom:false,visualizePitch:true}),"top-right");
+    gm.addControl(new maplibregl.NavigationControl({showZoom:true,visualizePitch:true}),"top-right");
     gm.on("style.load",()=>{try{
       const lay=gm.getStyle().layers,ff=(lay.find(l=>l.type==="symbol"&&l.layout&&l.layout["text-font"])||{layout:{}}).layout["text-font"]||["Noto Sans Regular"];
       ["rt","nrt","ndone","tf","sel","stops","me"].forEach(id=>gm.addSource(id,{type:"geojson",data:EMPTY}));gm.addSource("pts",{type:"geojson",data:EMPTY,cluster:true,clusterRadius:42,clusterMaxZoom:13});
@@ -1120,6 +1168,16 @@ function initMap(){
     gm.on("click","sp-c",e=>{const f=e.features&&e.features[0];if(f)toast("Limită de viteză: "+f.properties.v+" km/h",3500)});
     gm.on("click","cl-c",e=>{gm.easeTo({center:e.features[0].geometry.coordinates,zoom:gm.getZoom()+2.2})});
     gm.on("click",e=>{const f=gm.queryRenderedFeatures(e.point,{layers:["pts-h","sel-c","cl-c"]});if(!f.length)closePc()});
+    gm.on("click",e=>{if(!pick)return;const f=gm.queryRenderedFeatures(e.point,{layers:["pts-h","sel-c","cl-c"]});if(f.length)return;dropDest(e.point)});
+    gm.on("contextmenu",e=>{if(!nav.on)dropDest(e.point)});
+    (function(){
+      const el=gm.getCanvasContainer();let lt=null,sx=0,sy=0;
+      const cancel=()=>{clearTimeout(lt);lt=null};
+      el.addEventListener("touchstart",ev=>{cancel();if(nav.on||ev.touches.length!==1)return;const t=ev.touches[0];sx=t.clientX;sy=t.clientY;
+        lt=setTimeout(()=>{lt=null;const r=el.getBoundingClientRect();try{navigator.vibrate&&navigator.vibrate(15)}catch(x){}dropDest({x:sx-r.left,y:sy-r.top})},550)},{passive:true});
+      el.addEventListener("touchmove",ev=>{const t=ev.touches[0];if(lt&&t&&Math.hypot(t.clientX-sx,t.clientY-sy)>10)cancel()},{passive:true});
+      ["touchend","touchcancel"].forEach(n=>el.addEventListener(n,cancel,{passive:true}));
+    })();
     
   }catch(e){gm=null;toast("Harta nu poate porni: "+e.message,20000)}
 }
@@ -1141,7 +1199,7 @@ function drawMap0(m,r){
     const b=new maplibregl.LngLatBounds();
     if(r){r.route.forEach(p=>b.extend([p.lon,p.lat]));(r.geo||[]).forEach(c=>b.extend([c[1],c[0]]));if(start)b.extend([start.lon,start.lat])}
     else m.pts.forEach(p=>b.extend([p.lon,p.lat]));
-    if(!b.isEmpty()){gm.resize();gm.fitBounds(b,{padding:LS()?{top:50,bottom:50,left:Math.min(innerWidth*.44,400)+30,right:50}:{top:130,bottom:sheetPx()+40,left:36,right:36},maxZoom:16,duration:700,pitch:0,bearing:0})}
+    if(!b.isEmpty()){gm.resize();gm.fitBounds(b,{padding:LS()?{top:50,bottom:50,left:Math.min(innerWidth*.44,400)+30,right:50}:{top:130,bottom:sheetPx()+40,left:36,right:36},maxZoom:16,duration:700,pitch:0,bearing:0})}else if(start){gm.resize();gm.jumpTo({center:[start.lon,start.lat],zoom:14})}
   }
 }
 /* ---------- navigare proprie (voce + recalculare) ---------- */
@@ -1249,12 +1307,12 @@ function enterNav(a){
   mk3=new maplibregl.Marker({element:el,rotationAlignment:"map",pitchAlignment:"map"}).setLngLat([a.lon,a.lat]).addTo(gm);
   const de=document.createElement("div");de.className="dst";de.innerHTML="<span></span><i>📍</i>";
   mkT=new maplibregl.Marker({element:de,anchor:"bottom"}).setLngLat([nav.tgt.lon,nav.tgt.lat]).addTo(gm);de.firstChild.textContent=nav.tgt.name||"Start";nav.tgtM=nav.tgt;
-  if(!nav.hk){nav.hk=1;const pz=e=>{if(nav.on&&e.originalEvent&&!nav.ov){nav.ov=1;clearTimeout(nav.ovt);nav.ovt=setTimeout(endOv,8000)}};gm.on("dragstart",pz);gm.on("zoomstart",pz);gm.on("pitchstart",pz)}
+  if(!nav.hk){nav.hk=1;const pz=e=>{if(nav.on&&e.originalEvent)holdOv(true)};["dragstart","zoomstart","pitchstart","rotatestart","move"].forEach(n=>gm.on(n,pz))}
   nav.dp={lat:a.lat,lon:a.lon};nav.fp=nav.dp;
   if(nav.geo.length>1)hd=bear({lat:nav.geo[0][0],lon:nav.geo[0][1]},ptAt(Math.min(nav.L,15)));
   nav.fh=hd;
   gm.jumpTo({padding:{top:0,bottom:0,left:0,right:0}});
-  camIntro();nav.lt=0;nav.lr=0;nav.ui=0;
+  camIntro();nav.lt=0;nav.lr=0;nav.ui=0;zbPaint();
   cancelAnimationFrame(nav.raf2);nav.raf2=requestAnimationFrame(tick);
 }
 /* buclă continuă: poziția avansează la viteza reală, camera o urmează cadru cu cadru */
@@ -1274,12 +1332,12 @@ function tick(t){
     const p=ptAt(nav.s),q=ptAt(Math.min(nav.L,nav.s+14)),o=ptAt(Math.max(0,nav.s-4));
     nav.dp={lat:p.lat,lon:p.lon};
     if(hav(o,q)>2)brg=bear(o,q);
-    if(!nav.ov&&t-(nav.pst||0)>80){nav.pst=t;showProg(ptAt(Math.min(nav.L,nav.s+Math.max(3,nav.v*.35))))}
+    if(!nav.fit&&t-(nav.pst||0)>80){nav.pst=t;showProg(ptAt(Math.min(nav.L,nav.s+Math.max(3,nav.v*.35))))}
   }else if(nav.free&&nav.fp){
     const ex=mvp(nav.fp,nav.fh,nav.vf*Math.min(age,3)),k=Math.min(1,dt*3);
     nav.dp={lat:nav.dp.lat+(ex.lat-nav.dp.lat)*k,lon:nav.dp.lon+(ex.lon-nav.dp.lon)*k};
     brg=nav.fh;
-    if(!nav.ov&&nav.geo.length>1&&t-(nav.pst||0)>150){nav.pst=t;const q=snapTo(nav.dp,nav.geo,Math.max(0,(nav.si0||0)-25),(nav.si0||0)+500)||snapTo(nav.dp,nav.geo);if(q)showProg({i:q.i,lat:q.lat,lon:q.lon})}
+    if(!nav.fit&&nav.geo.length>1&&t-(nav.pst||0)>150){nav.pst=t;const q=snapTo(nav.dp,nav.geo,Math.max(0,(nav.si0||0)-25),(nav.si0||0)+500)||snapTo(nav.dp,nav.geo);if(q)showProg({i:q.i,lat:q.lat,lon:q.lon})}
   }
   hd=angLerp(hd,brg,1-Math.exp(-dt/.3));
   /* zoom pe intersecție înainte de manevră */
@@ -1290,9 +1348,9 @@ function tick(t){
   let f=(!arr&&dM<R)?Math.min(1,Math.max(0,(R-dM)/(R-45))):0;f=f*f*(3-2*f);
   const T=nav.tgt,dT=T?hav(nav.dp,T):1e9,dF=nav.free?dT:Math.max(dT,nav.L-nav.s);
   let fe=Math.min(1,Math.max(0,(150-dF)/125));fe=fe*fe*(3-2*fe);
-  const bz=zBase(nav.v*3.6),za=Math.min(19.1,Math.max(bz+.9,18.4)),z1=bz+f*(za-bz),zT=z1+fe*(Math.max(z1,19.5)-z1);
+  const bz=zBase(nav.v*3.6),za=Math.min(19.1,Math.max(bz+.9,18.4)),z1=bz+f*(za-bz),zA=z1+fe*(Math.max(z1,19.5)-z1);nav.zA=zA;const zT=Math.max(7,Math.min(21,zA+(nav.zo||0)));
   const pb=ORI?58:66,pT=nav.d3?(pb-16*f)*(1-fe)+40*fe:0;
-  nav.cz+=(zT-nav.cz)*(1-Math.exp(-dt/(zT>nav.cz?.7:1.4)));
+  nav.cz+=(zT-nav.cz)*(1-Math.exp(-dt/(t<(nav.zk||0)?.2:(zT>nav.cz?.7:1.4))));
   nav.cp+=(pT-nav.cp)*(1-Math.exp(-dt/.8));
   nav.cb=angLerp(nav.cb,nav.d3?hd:0,1-Math.exp(-dt/.15));
   const H=innerHeight,padT=nav.d3?2*H*.2*(1-.35*f)*(1-.6*fe):0,padL=ORI?Math.min(innerWidth*.40,340)+22:0,kp=1-Math.exp(-dt/.5);
@@ -1384,7 +1442,7 @@ async function startNav(t){
   const one=t&&typeof t.lat==="number"?t:null,m=M();
   if(!m||(!one&&(!m.last||!m.last.route[1]))||!navigator.geolocation)return;
   if(one){if(!manual)await getLoc(true);if(!start){toast("Setează mai întâi locația de start.",6000);openSheet();return}}
-  closePc();nav.lim=null;nav.lq=null;nav.al=0;nav.fx=0;nav.pv=null;nav.dOff=0;nav.on=1;nav.busy=0;nav.mute=cfg.voice!=="1"?1:0;nav.ov=0;nav.d3=1;nav.last=null;$("n3").textContent="3D";$("nvm").textContent=nav.mute?"🔇":"🔊";$("sheet").hidden=true;$("fab").hidden=true;$("f4").hidden=$("f3").hidden=true;nav.tgt=one||m.last.route[1];nav.single=!!one;nav.pos=start;nav.v=0;nav.vf=0;nav.free=0;nav.s=0;nav.sf=0;nav.cum=[0];nav.L=0;nav.sM=[];nav.lt=0;nav.ui=0;nav.pi=-1;nav.stillT=0;nav.rr=0;nav.wrong=0;nav.off=0;
+  closePc();try{exitGps()}catch(e){}document.body.classList.add("navon");nav.lim=null;nav.lq=null;nav.al=0;nav.fx=0;nav.pv=null;nav.dOff=0;nav.on=1;nav.busy=0;nav.mute=cfg.voice!=="1"?1:0;nav.ov=0;nav.fit=0;nav.zo=0;nav.zk=0;nav.d3=1;nav.last=null;$("n3").textContent="3D";$("nvm").textContent=nav.mute?"🔇":"🔊";$("sheet").hidden=true;$("fab").hidden=true;$("f4").hidden=$("f3").hidden=true;nav.tgt=one||m.last.route[1];nav.single=!!one;nav.pos=start;nav.v=0;nav.vf=0;nav.free=0;nav.s=0;nav.sf=0;nav.cum=[0];nav.L=0;nav.sM=[];nav.lt=0;nav.ui=0;nav.pi=-1;nav.stillT=0;nav.rr=0;nav.wrong=0;nav.off=0;
   $("nv").hidden=false;$("mapc").classList.add("fs");$("mx").hidden=true;$("nvd").textContent="Se calculează…";$("nvx").textContent="";$("nvn").textContent=nav.tgt.name||"Start";
   nav.tf=1;nav.tfAt=0;nav.hot=null;nav.dl0=0;nav.o0=0;nav.oLast=0;lastD=null;try{hideDly()}catch(e){}
   try{$("nvf").hidden=true;nvfK=nvfP="";nvfN=0}catch(e){}
@@ -1442,7 +1500,7 @@ async function onPos(pos){
   }
 }
 function stopNav(){try{localStorage.removeItem("traseu_nav")}catch(e){}try{hideDly()}catch(e){}nav.single=false;nav.on=0;nav.busy=0;if(nav.w!=null)navigator.geolocation.clearWatch(nav.w);nav.w=null;try{nav.wl&&nav.wl.release()}catch(e){}
-  cancelAnimationFrame(nav.raf);cancelAnimationFrame(nav.raf2);clearTimeout(nav.ovt);$("lim").hidden=true;$("spd").classList.remove("over");if(mk3){mk3.remove();mk3=null}if(mkT){mkT.remove();mkT=null}nav.tgtM=null;m3=null;if(gm&&gmReady){gm.getSource("nrt").setData(EMPTY);gm.getSource("ndone").setData(EMPTY);["rt-c","rt-l"].forEach(id=>{try{gm.setLayoutProperty(id,"visibility","visible")}catch(e){}});nav.tf=[];applyTf();gm.easeTo({pitch:0,bearing:0,padding:{top:0,bottom:0,left:0,right:0},duration:600})}nav.last=null;nav.ov=0;$("nvo").classList.remove("on");$("sheet").hidden=false;$("fab").hidden=false;$("f4").hidden=$("f3").hidden=false;$("f3").textContent="3D";setSnap(snap,false);$("nv").hidden=true;$("mapc").classList.remove("fs");$("mx").hidden=false;$("mx").textContent="⤢";setTimeout(()=>gm&&gm.resize(),60);try{speechSynthesis.cancel()}catch(e){}}
+  cancelAnimationFrame(nav.raf);cancelAnimationFrame(nav.raf2);clearTimeout(nav.ovt);$("lim").hidden=true;$("spd").classList.remove("over");if(mk3){mk3.remove();mk3=null}if(mkT){mkT.remove();mkT=null}nav.tgtM=null;m3=null;if(gm&&gmReady){gm.getSource("nrt").setData(EMPTY);gm.getSource("ndone").setData(EMPTY);["rt-c","rt-l"].forEach(id=>{try{gm.setLayoutProperty(id,"visibility","visible")}catch(e){}});nav.tf=[];applyTf();gm.easeTo({pitch:0,bearing:0,padding:{top:0,bottom:0,left:0,right:0},duration:600})}nav.last=null;nav.ov=0;nav.fit=0;nav.zo=0;document.body.classList.remove("navon");$("nvo").classList.remove("on");$("sheet").hidden=false;$("fab").hidden=false;$("f4").hidden=$("f3").hidden=false;$("f3").textContent="3D";setSnap(snap,false);$("nv").hidden=true;$("mapc").classList.remove("fs");$("mx").hidden=false;$("mx").textContent="⤢";setTimeout(()=>gm&&gm.resize(),60);try{speechSynthesis.cancel()}catch(e){}}
 $("nvs").onclick=()=>nav.demo?stopTrafficDemo():stopNav();$("n3").onclick=()=>{nav.d3=!nav.d3;$("n3").textContent=nav.d3?"3D":"2D"};$("nvm").onclick=()=>{nav.mute=!nav.mute;$("nvm").textContent=nav.mute?"🔇":"🔊"};
 $("mx").onclick=()=>{const c=$("mapc").classList.toggle("fs");$("mx").textContent=c?"✕":"⤢";setTimeout(()=>gm&&gm.resize(),60)};
 paintNav();
@@ -1755,7 +1813,7 @@ function resumeApp(){
   /* pornesc din nou urmărirea GPS, resetez interpolarea și camera, apoi aliniez poziția la traseu */
   try{if(nav.w!=null)navigator.geolocation.clearWatch(nav.w)}catch(e){}
   nav.w=navigator.geolocation.watchPosition(onPos,()=>{$("nvx").textContent="Semnal GPS slab"},{enableHighAccuracy:true,maximumAge:1000,timeout:20000});
-  nav.lt=0;nav.ft=performance.now();nav.pv=null;nav.fx=0;nav.ov=0;nav.busy=0;clearTimeout(nav.ovt);
+  nav.lt=0;nav.ft=performance.now();nav.pv=null;nav.fx=0;nav.ov=0;nav.fit=0;nav.busy=0;clearTimeout(nav.ovt);try{zbPaint()}catch(e){}
   try{$("nvo").classList.remove("on")}catch(e){}
   cancelAnimationFrame(nav.raf2);nav.raf2=requestAnimationFrame(tick);
   try{navigator.geolocation.getCurrentPosition(pos=>{if(nav.on)onPos(pos)},()=>{},{enableHighAccuracy:true,maximumAge:5000,timeout:8000})}catch(e){}
@@ -1826,18 +1884,21 @@ $("f4").onclick=()=>{
 };
 $("f3").onclick=()=>{if(!gm)return;const on=gm.getPitch()<10;gm.easeTo({pitch:on?58:0,duration:600});$("f3").textContent=on?"2D":"3D"};
 $("fab").onclick=async()=>{await getLoc(false);if(start&&gm)gm.easeTo({center:[start.lon,start.lat],zoom:15})};
-function endOv(){clearTimeout(nav.ovt);nav.ov=0;$("nvo").classList.remove("on");camIntro()}
-$("nvo").onclick=()=>{nav.ov=!nav.ov;$("nvo").classList.toggle("on",nav.ov);
-  if(nav.ov&&nav.geo.length){
+function zbPaint(){const b=$("nzc");if(!b)return;const on=!!nav.ov||Math.abs(nav.zo||0)>.05;b.hidden=!on;b.textContent=nav.ov?"◎":"A";b.setAttribute("aria-label",nav.ov?"Recentrează":"Zoom automat")}
+function holdOv(user){if(user&&nav.fit){nav.fit=0;$("nvo").classList.remove("on")}if(!nav.ov){nav.ov=1;zbPaint()}clearTimeout(nav.ovt);nav.ovt=setTimeout(endOv,nav.fit?12000:10000)}
+function endOv(){clearTimeout(nav.ovt);if(nav.ov&&!nav.fit&&gm&&nav.zA)nav.zo=Math.max(-5,Math.min(3,gm.getZoom()-nav.zA));nav.ov=0;nav.fit=0;$("nvo").classList.remove("on");camIntro();zbPaint()}
+function navZoom(dz){if(!nav.on||!gm)return;if(nav.ov){holdOv(true);gm.easeTo({zoom:Math.max(3,Math.min(21,gm.getZoom()+dz)),duration:250})}else{nav.zo=Math.max(-5,Math.min(3,(nav.zo||0)+dz));nav.zk=performance.now()+800;zbPaint()}}
+$("nvo").onclick=()=>{if(nav.fit){endOv();return}nav.ov=1;nav.fit=1;$("nvo").classList.add("on");zbPaint();
+  if(nav.geo.length){
     if(m3){gm.getSource("nrt").setData(rtData());m3.jumpTo({padding:{top:0,bottom:0,left:0,right:0}});const b=new maplibregl.LngLatBounds();nav.geo.forEach(c=>b.extend([c[1],c[0]]));
       m3.fitBounds(b,ORI?{padding:{top:40,bottom:40,left:Math.min(innerWidth*.40,340)+34,right:40},pitch:0,bearing:0,duration:700}:{padding:{top:170,bottom:150,left:40,right:40},pitch:0,bearing:0,duration:700})}
-    clearTimeout(nav.ovt);nav.ovt=setTimeout(endOv,12000)
-  }else endOv()};
+  }
+  clearTimeout(nav.ovt);nav.ovt=setTimeout(endOv,12000)};
 
 /* ---------- fișa punctului ---------- */
 let pcI=null;
 function openPc(i,fly){
-  const m=M(),p=m&&m.pts[i];if(!p)return;pcI=i;
+  const m=M(),p=m&&m.pts[i];if(!p)return;pcI=i;try{if(pick||dest)exitGps()}catch(e){}
   $("pcn").textContent=p.name;
   $("pcs").textContent=(p.folder||"Punct")+(start?" · la "+km(hav(start,p)):"");
   $("pcd").textContent=p.desc||"";
@@ -1869,6 +1930,153 @@ function setSnap(k,anim=true){snap=k;const sh=$("sheet");
     const o=[["peek",peek()],["half",innerHeight*.5],["full",innerHeight*.88]].sort((a,b)=>Math.abs(a[1]-d.v)-Math.abs(b[1]-d.v));setSnap(o[0][0])})});
 function fitTop(){const t=$("top");if(t)document.documentElement.style.setProperty("--th",t.offsetHeight+"px")}
 addEventListener("resize",()=>{ORI=LS();setSnap(snap,false);fitTop()});
+
+/* ---------- GPS liber: caută o stradă / un loc sau alege pe hartă, apoi navighează ---------- */
+let dest=null,dmk=null,pick=false,snapBefore=null,gsTok=0;
+function ensureMap(){if(!M()){const m=newMap("Locurile mele",[]);maps.push(m);cur=m.id;save();render()}}
+function recents(){try{return JSON.parse(localStorage.getItem("t2recent")||"[]")}catch(e){return[]}}
+function pushRecent(d){try{const r=recents().filter(x=>Math.abs(x.lat-d.lat)>1e-5||Math.abs(x.lon-d.lon)>1e-5);r.unshift({name:d.name,addr:d.addr||"",lat:d.lat,lon:d.lon});localStorage.setItem("t2recent",JSON.stringify(r.slice(0,8)))}catch(e){}}
+function peekMap(){if(snapBefore==null)snapBefore=snap;try{setSnap("peek")}catch(e){}}
+function exitGps(){
+  pick=false;$("pkb").hidden=true;dest=null;try{dmk&&dmk.remove()}catch(e){}dmk=null;$("dc").classList.remove("on");
+  const ok=M()&&!nav.on;$("fab").hidden=!ok;$("f4").hidden=$("f3").hidden=!ok;
+  if(snapBefore!=null){const s0=snapBefore;snapBefore=null;try{setSnap(s0)}catch(e){}}
+}
+function startPick(){
+  try{closePc()}catch(e){}
+  if(dest)exitGps();
+  ensureMap();closeSheet();pick=true;$("pkb").hidden=false;peekMap();
+}
+function paintDc(){
+  if(!dest)return;
+  $("dcn").textContent=dest.name;
+  let a=(dest.addr&&dest.addr!==dest.name)?dest.addr:"";if(a.length>90)a=a.slice(0,88)+"…";
+  const d=dest.dur?mn(dest.dur)+" · "+km(dest.dist):(start?"în linie dreaptă "+km(hav(start,dest)):"");
+  $("dcs").textContent=[a,d].filter(Boolean).join(" · ");
+  if(dmk){try{dmk.getElement().firstChild.textContent=dest.name}catch(e){}}
+}
+async function destEta(dd){
+  if(!start)return;
+  try{
+    const r=await fetch("https://router.project-osrm.org/route/v1/driving/"+start.lon+","+start.lat+";"+dd.lon+","+dd.lat+"?overview=false"),j=await r.json();
+    if(j.code==="Ok"&&dest===dd){dd.dist=j.routes[0].distance;dd.dur=j.routes[0].duration;paintDc()}
+  }catch(e){}
+}
+function setDest(d,o){
+  o=o||{};ensureMap();try{closePc()}catch(e){}
+  pick=false;$("pkb").hidden=true;closeSheet();
+  const dd={lat:d.lat,lon:d.lon,name:d.name||"Punct ales pe hartă",addr:d.addr||""};dest=dd;
+  if(gm){
+    try{dmk&&dmk.remove()}catch(e){}
+    const el=document.createElement("div");el.className="dst";el.innerHTML="<span></span><i>📍</i>";el.firstChild.textContent=dd.name;
+    dmk=new maplibregl.Marker({element:el,anchor:"bottom"}).setLngLat([dd.lon,dd.lat]).addTo(gm);
+  }
+  peekMap();
+  if(gm&&o.fly)gm.easeTo({center:[dd.lon,dd.lat],zoom:o.keep?gm.getZoom():Math.max(gm.getZoom(),15),pitch:0,bearing:0,offset:[0,-70],duration:600});
+  paintDc();
+  $("dc").classList.add("on");$("fab").hidden=true;$("f4").hidden=$("f3").hidden=true;
+  destEta(dd);
+  return dd;
+}
+function featAt(pt){
+  try{
+    const fs=gm.queryRenderedFeatures([[pt.x-10,pt.y-10],[pt.x+10,pt.y+10]]);
+    for(const f of fs){
+      if(!f.layer||f.layer.type!=="symbol"||MINE_RE.test(f.layer.id)||/^(tt-3d|sg-|ow-|rd-|sp-)/.test(f.layer.id))continue;
+      const p=f.properties||{},n=p["name:ro"]||p.name||p.name_en||p["name:en"];
+      if(n&&f.geometry&&f.geometry.type==="Point"){const c=f.geometry.coordinates;return{name:String(n),lat:c[1],lon:c[0]}}
+    }
+  }catch(e){}
+  return null;
+}
+function dropDest(pt){
+  if(!gm||nav.on)return;
+  const ll=gm.unproject([pt.x,pt.y]),f=featAt(pt);
+  const dd=setDest({lat:f?f.lat:ll.lat,lon:f?f.lon:ll.lng,name:f?f.name:"Punct ales pe hartă",addr:""},{fly:true,keep:true});
+  revGeo(dd.lat,dd.lon).then(r=>{if(!r||dest!==dd)return;if(!f&&r.name)dd.name=r.name;if(r.addr)dd.addr=r.addr;paintDc()});
+}
+const stName=a=>a.streetName?a.streetName+(a.streetNumber?" "+a.streetNumber:""):"";
+async function revGeo(lat,lon){
+  if(ttKey&&!ttOff){
+    try{
+      const r=await fetch("https://api.tomtom.com/search/2/reverseGeocode/"+lat.toFixed(6)+","+lon.toFixed(6)+".json?key="+encodeURIComponent(ttKey)+"&language=ro-RO&radius=60");
+      if(r.ok){const j=await r.json(),a=j.addresses&&j.addresses[0]&&j.addresses[0].address;if(a)return{name:stName(a)||a.freeformAddress||"",addr:a.freeformAddress||""}}
+    }catch(e){}
+  }
+  try{
+    const r=await fetch("https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&addressdetails=1&accept-language=ro&lat="+lat+"&lon="+lon);
+    if(r.ok){const j=await r.json(),a=j.address||{},road=a.road||a.pedestrian||a.footway||"";
+      return{name:j.name||(road?road+(a.house_number?" "+a.house_number:""):(j.display_name||"").split(",")[0]),addr:j.display_name||""}}
+  }catch(e){}
+  return null;
+}
+async function geoSearch(q){
+  const c=gm?gm.getCenter():(start?{lat:start.lat,lng:start.lon}:null);
+  if(ttKey&&!ttOff){
+    try{
+      const r=await fetch("https://api.tomtom.com/search/2/search/"+encodeURIComponent(q)+".json?key="+encodeURIComponent(ttKey)+"&limit=8&language=ro-RO&typeahead=false"+(c?"&lat="+c.lat.toFixed(4)+"&lon="+c.lng.toFixed(4):""));
+      if(r.ok){
+        const j=await r.json();
+        return(j.results||[]).filter(x=>x.position).map(x=>{const a=x.address||{};return{name:(x.poi&&x.poi.name)||stName(a)||a.freeformAddress||"",addr:a.freeformAddress||"",lat:x.position.lat,lon:x.position.lon}});
+      }
+    }catch(e){}
+  }
+  const vb=c?"&viewbox="+[c.lng-.7,c.lat+.7,c.lng+.7,c.lat-.7].map(v=>v.toFixed(4)).join(","):"";
+  const r=await fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=8&accept-language=ro&q="+encodeURIComponent(q)+vb);
+  if(!r.ok)throw new Error("HTTP "+r.status);
+  const j=await r.json();
+  return j.map(x=>{const a=x.address||{},road=a.road||a.pedestrian||"";return{name:x.name||(road?road+(a.house_number?" "+a.house_number:""):(x.display_name||"").split(",")[0]),addr:x.display_name||"",lat:+x.lat,lon:+x.lon}});
+}
+function gRes(list,box){
+  box.innerHTML="";
+  list.forEach(d=>{
+    const e=document.createElement("div");e.className="gi";
+    const b=document.createElement("b");b.textContent=d.name||"Fără nume";
+    const s=document.createElement("span");s.className="m";s.textContent=d.addr||"";
+    e.append(b,s);e.onclick=()=>setDest(d,{fly:true});box.append(e);
+  });
+}
+async function gSearch(){
+  const q=$("gq").value.trim();if(!q)return;
+  const t=++gsTok,msg=$("gmm"),box=$("gres");
+  msg.className="msg";msg.textContent="Se caută…";box.innerHTML="";
+  const pre=[],c=parseCoords(q);
+  if(c)pre.push({name:"Coordonate "+c.lat.toFixed(5)+", "+c.lon.toFixed(5),addr:"Punct după coordonate",lat:c.lat,lon:c.lon});
+  const nq=norm(q),loc=[];
+  maps.forEach(mm=>mm.pts.forEach(p=>{if(loc.length<4&&norm(p.name).includes(nq))loc.push({name:p.name,addr:"📌 Punct din „"+mm.name+"”",lat:p.lat,lon:p.lon})}));
+  let net=[],err=null;
+  if(!c){try{net=await geoSearch(q)}catch(e){err=e}}
+  if(t!==gsTok)return;
+  const all=[...pre,...loc,...net];
+  gRes(all,box);
+  msg.className=all.length?"msg":"msg er";
+  msg.textContent=all.length?"":(err?"Căutarea nu a mers (verifică internetul).":"Nimic găsit. Încearcă altfel, de exemplu „stradă, oraș”.");
+}
+function paintGps(){const r=recents(),w=$("grc");w.hidden=!r.length;gRes(r,$("grl"))}
+async function goDest(){
+  const d=dest;if(!d)return;
+  pushRecent(d);exitGps();manual=false;gpsOk=null;
+  await startNav({lat:d.lat,lon:d.lon,name:d.name});
+}
+function addDest(){
+  const m=M();if(!m||!dest)return;
+  const d=dest;let i=m.pts.findIndex(q=>Math.abs(q.lat-d.lat)<1e-6&&Math.abs(q.lon-d.lon)<1e-6);
+  if(i<0){m.pts.push({name:d.name,lat:d.lat,lon:d.lon,desc:d.addr||"",folder:"Adăugat de mine"});i=m.pts.length-1}
+  m.sel.add(i);pushRecent(d);exitGps();render();changed();toast("Adăugat la traseu: "+d.name,4000);
+}
+$("gpsb").onclick=()=>openSheet("v-gps");
+$("gpl").onclick=()=>openSheet("v-gps");
+$("emg").onclick=()=>{ensureMap();openSheet("v-gps");getLoc(true).then(ok=>{if(ok&&gm&&start)gm.easeTo({center:[start.lon,start.lat],zoom:14,duration:700})})};
+$("gsb").onclick=gSearch;
+$("gq").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();gSearch();try{$("gq").blur()}catch(x){}}});
+$("gpk").onclick=startPick;
+$("pkx").onclick=exitGps;
+$("dcx").onclick=exitGps;
+$("dcn2").onclick=goDest;
+$("dct").onclick=addDest;
+$("nzi").onclick=()=>navZoom(.7);
+$("nzo").onclick=()=>navZoom(-.7);
+$("nzc").onclick=()=>{if(nav.ov)endOv();else{nav.zo=0;nav.zk=performance.now()+800;zbPaint()}};
 
 /* ---------- pornire ---------- */
 applyTheme();load();render();setSnap("half",false);fitTop();setTimeout(fitTop,400);paintLoc();paintAsk();try{if(!localStorage.getItem("traseu_seen"))setTimeout(()=>openSheet("v-ob"),700)}catch(e){}
