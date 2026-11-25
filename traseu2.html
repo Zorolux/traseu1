@@ -359,7 +359,9 @@ h1{font-size:28px}
 /* ===== GPS liber + zoom manual în navigare ===== */
 .hrow>h1{flex:none;white-space:nowrap;font-size:22px}
 .hrow #chip{flex:0 1 auto;min-width:0}
-.gi{display:block;padding:12px 4px;cursor:pointer;box-shadow:0 .5px 0 var(--b)}
+.gi{display:flex;align-items:center;gap:10px;padding:12px 4px;cursor:pointer;box-shadow:0 .5px 0 var(--b)}
+.gi .gx{flex:1;min-width:0}
+.gi .ga{flex:none;width:36px;height:36px;border:0;border-radius:50%;background:#af52de;color:#fff;font-size:20px;font-weight:600;line-height:1}
 .gi:last-child{box-shadow:none}
 .gi:active{opacity:.5}
 .gi b{display:block;font-weight:600;overflow-wrap:anywhere}
@@ -388,6 +390,16 @@ h1{font-size:28px}
 #stabs{margin:8px 12px 4px}
 #gpsv{padding:8px 12px calc(20px + env(safe-area-inset-bottom,0px))}
 }
+.gr{display:flex;align-items:center;gap:8px;padding:10px 0;box-shadow:0 .5px 0 var(--b)}
+.gr:last-child{box-shadow:none}
+.gr>i{flex:none;width:26px;height:26px;border-radius:50%;background:#af52de;color:#fff;font:700 13px/26px system-ui,sans-serif;text-align:center;font-style:normal}
+.gr.dn>i{background:#34c759}
+.gr.dn .gt{opacity:.5;text-decoration:line-through}
+.gr .gt{flex:1;min-width:0}
+.gr .gt b{display:block;font-weight:600;overflow-wrap:anywhere}
+.gr .gt .m{display:block;overflow-wrap:anywhere}
+.gr button{flex:none;width:34px;height:34px;padding:0;border:0;border-radius:50%;background:var(--as);color:var(--t);font-size:16px;font-weight:700}
+#gts{margin:6px 0 2px;font-weight:600}
 </style>
 </head>
 <body>
@@ -455,6 +467,20 @@ h1{font-size:28px}
     <div class="msg" id="gmm"></div>
     <div class="res" id="gres"></div>
   </div>
+  <div class="card" id="gtc">
+    <div class="ct"><b>Traseu GPS</b><span class="m" id="gtn"></span></div>
+    <div class="m" id="gte">Planifică un traseu cu mai multe opriri: apasă „＋” lângă un rezultat al căutării sau în fișa unui punct ales pe hartă. Poți adăuga și punctele tale selectate.</div>
+    <div class="gl" id="gtl"></div>
+    <div class="m" id="gts"></div>
+    <button class="btn" id="gtgo" hidden>🧭 Navighează traseul</button>
+    <div class="pca">
+      <button class="btn l" id="gtsel">＋ Puncte selectate</button>
+      <button class="btn l" id="gtopt" hidden>⚡ Optimizează ordinea</button>
+      <button class="btn l" id="gtfit" hidden>🗺 Arată pe hartă</button>
+      <button class="btn l" id="gtrs" hidden>↺ Reia traseul</button>
+      <button class="btn l" id="gtclr" hidden>Golește</button>
+    </div>
+  </div>
   <div class="card">
     <div class="ct"><b>Alege pe hartă</b></div>
     <div class="m">Atinge orice stradă sau punct de pe hartă. Poți și să ții apăsat oriunde pe hartă ca să pui o destinație.</div>
@@ -473,7 +499,7 @@ h1{font-size:28px}
 
 <div id="dc">
   <div class="pch"><div><b id="dcn"></b><span class="m" id="dcs"></span></div><button id="dcx">✕</button></div>
-  <div class="pca"><button class="btn" id="dcn2">🧭 Navighează</button><button class="btn l" id="dct">Adaugă la traseu</button></div>
+  <div class="pca"><button class="btn" id="dcn2">🧭 Navighează</button><button class="btn l" id="dcg">＋ În traseul GPS</button><button class="btn l" id="dct">Salvează în puncte</button></div>
 </div>
 <div id="pkb" hidden><span>📍 Atinge harta ca să alegi destinația</span><button id="pkx" aria-label="Renunță">✕</button></div>
 <div id="mt"></div>
@@ -895,9 +921,10 @@ async function osrmMatrix(all){
   if(all.length>100)return null;
   try{const r=await fetch("https://router.project-osrm.org/table/v1/driving/"+all.map(p=>p.lon+","+p.lat).join(";")+"?annotations=duration"),j=await r.json();return j.code==="Ok"?j.durations:null}catch(e){return null}
 }
-async function osrm(list,rt){
+async function osrm(list,rt,fixed){
   const all=[start,...list];let ord;
-  if(cfg.ord==="near")ord=nearestOrder(all);
+  if(fixed)ord=all.map((_,i)=>i);
+  else if(cfg.ord==="near")ord=nearestOrder(all);
   else{
     let T=await ttMatrix(all);if(!T)T=await osrmMatrix(all);
     ord=nearestOrder(all,T);
@@ -1238,6 +1265,7 @@ function initMap(){
       try{addSg(ff)}catch(e){toast("Semne: "+e.message,8000)}
       try{if(cfg.earth==="1")applyEarth();else build3d(false)}catch(e){toast("Clădiri 3D: "+e.message,12000)}
       try{trafficApply()}catch(e){}
+      try{ensureGp(true);gDraw()}catch(e){}
       gmReady=true;
       if(typeof nav!=="undefined"&&nav.on&&nav.geo.length){gm.getSource("nrt").setData(rtData());["rt-c","rt-l"].forEach(id=>{try{gm.setLayoutProperty(id,"visibility","none")}catch(e){}})}
       const q=pend||lastDraw;pend=null;if(q)drawMap(q[0],q[1]);
@@ -1530,7 +1558,7 @@ async function startNav(t){
   const one=t&&typeof t.lat==="number"?t:null,m=M();
   if(!m||(!one&&(!m.last||!m.last.route[1]))||!navigator.geolocation)return;
   if(one){if(!manual)await getLoc(true);if(!start){toast("Setează mai întâi locația de start.",6000);openSheet();return}}
-  closePc();try{exitGps()}catch(e){}document.body.classList.add("navon");nav.lim=null;nav.lq=null;nav.al=0;nav.fx=0;nav.pv=null;nav.dOff=0;nav.on=1;nav.busy=0;nav.mute=cfg.voice!=="1"?1:0;nav.ov=0;nav.fit=0;nav.zo=0;nav.zk=0;nav.d3=1;nav.last=null;$("n3").textContent="3D";$("nvm").textContent=nav.mute?"🔇":"🔊";$("sheet").hidden=true;$("fab").hidden=true;$("f4").hidden=$("f3").hidden=true;nav.tgt=one||m.last.route[1];nav.single=!!one;nav.pos=start;nav.v=0;nav.vf=0;nav.free=0;nav.s=0;nav.sf=0;nav.cum=[0];nav.L=0;nav.sM=[];nav.lt=0;nav.ui=0;nav.pi=-1;nav.stillT=0;nav.rr=0;nav.wrong=0;nav.off=0;
+  closePc();try{exitGps()}catch(e){}document.body.classList.add("navon");nav.lim=null;nav.lq=null;nav.al=0;nav.fx=0;nav.pv=null;nav.dOff=0;nav.on=1;try{gDraw()}catch(e){}nav.busy=0;nav.mute=cfg.voice!=="1"?1:0;nav.ov=0;nav.fit=0;nav.zo=0;nav.zk=0;nav.d3=1;nav.last=null;$("n3").textContent="3D";$("nvm").textContent=nav.mute?"🔇":"🔊";$("sheet").hidden=true;$("fab").hidden=true;$("f4").hidden=$("f3").hidden=true;nav.tgt=one||m.last.route[1];nav.single=!!one;nav.gq=one&&one.gq?one.gq.slice():null;nav.pos=start;nav.v=0;nav.vf=0;nav.free=0;nav.s=0;nav.sf=0;nav.cum=[0];nav.L=0;nav.sM=[];nav.lt=0;nav.ui=0;nav.pi=-1;nav.stillT=0;nav.rr=0;nav.wrong=0;nav.off=0;
   $("nv").hidden=false;$("mapc").classList.add("fs");$("mx").hidden=true;$("nvd").textContent="Se calculează…";$("nvx").textContent="";$("nvn").textContent=nav.tgt.name||"Start";
   nav.tf=1;nav.tfAt=0;nav.hot=null;nav.dl0=0;nav.o0=0;nav.oLast=0;lastD=null;try{hideDly()}catch(e){}
   try{$("nvf").hidden=true;nvfK=nvfP="";nvfN=0}catch(e){}
@@ -1570,7 +1598,12 @@ async function onPos(pos){
   const atEnd=nav.geo.length>1&&!nav.free&&nav.sf>=nav.L-9&&dT0<90;
   if(dT0<16||atEnd||(dT0<30&&nav.stillT&&now-nav.stillT>5000)){
     nav.busy=1;speak("Ai ajuns la "+(T.name||"punctul de start"));reached(T.name);setStart(p.lat,p.lon,"GPS");
-    if(nav.single){if(owners(T).some(o=>o.mm.sel.has(o.i)))markDone(m,T);stopNav();return}
+    if(nav.single){
+      if(owners(T).some(o=>o.mm.sel.has(o.i)))markDone(m,T);
+      try{gMark(T)}catch(e){}
+      const gn=nav.gq&&nav.gq.length?nav.gq.shift():null;
+      if(gn){speak("Următoarea oprire: "+(gn.name||"destinația"));nav.tgt=gn;nav.tf=1;nav.tfAt=0;nav.hot=null;nav.dl0=0;nav.o0=0;lastD=null;try{hideDly()}catch(e){}$("nvn").textContent=gn.name||"Destinație";saveNav();try{await navLeg(p)}catch(e){}nav.busy=0;return}
+      stopNav();return}
     if(T.name)markDone(m,T);clearTimeout(tm);await compute();
     const n=m.last&&m.last.route[1];
     if(!n){stopNav();speak("Toate opririle sunt terminate");return}
@@ -1587,8 +1620,8 @@ async function onPos(pos){
     navLeg(from,hg).catch(()=>{}).finally(()=>{nav.rr=0});
   }
 }
-function stopNav(){try{localStorage.removeItem("traseu_nav")}catch(e){}try{hideDly()}catch(e){}nav.single=false;nav.on=0;nav.busy=0;if(nav.w!=null)navigator.geolocation.clearWatch(nav.w);nav.w=null;try{nav.wl&&nav.wl.release()}catch(e){}
-  cancelAnimationFrame(nav.raf);cancelAnimationFrame(nav.raf2);clearTimeout(nav.ovt);$("lim").hidden=true;$("spd").classList.remove("over");if(mk3){mk3.remove();mk3=null}if(mkT){mkT.remove();mkT=null}nav.tgtM=null;m3=null;if(gm&&gmReady){gm.getSource("nrt").setData(EMPTY);gm.getSource("ndone").setData(EMPTY);["rt-c","rt-l"].forEach(id=>{try{gm.setLayoutProperty(id,"visibility","visible")}catch(e){}});nav.tfs=[];applyTf();gm.easeTo({pitch:0,bearing:0,padding:{top:0,bottom:0,left:0,right:0},duration:600})}nav.last=null;nav.ov=0;nav.fit=0;nav.zo=0;document.body.classList.remove("navon");$("nvo").classList.remove("on");$("sheet").hidden=false;$("fab").hidden=false;$("f4").hidden=$("f3").hidden=false;$("f3").textContent="3D";setSnap(snap,false);$("nv").hidden=true;$("mapc").classList.remove("fs");$("mx").hidden=false;$("mx").textContent="⤢";setTimeout(()=>gm&&gm.resize(),60);try{speechSynthesis.cancel()}catch(e){}}
+function stopNav(){try{localStorage.removeItem("traseu_nav")}catch(e){}try{hideDly()}catch(e){}nav.single=false;nav.gq=null;nav.on=0;nav.busy=0;if(nav.w!=null)navigator.geolocation.clearWatch(nav.w);nav.w=null;try{nav.wl&&nav.wl.release()}catch(e){}
+  cancelAnimationFrame(nav.raf);cancelAnimationFrame(nav.raf2);clearTimeout(nav.ovt);$("lim").hidden=true;$("spd").classList.remove("over");if(mk3){mk3.remove();mk3=null}if(mkT){mkT.remove();mkT=null}nav.tgtM=null;m3=null;if(gm&&gmReady){gm.getSource("nrt").setData(EMPTY);gm.getSource("ndone").setData(EMPTY);["rt-c","rt-l"].forEach(id=>{try{gm.setLayoutProperty(id,"visibility","visible")}catch(e){}});nav.tfs=[];applyTf();gm.easeTo({pitch:0,bearing:0,padding:{top:0,bottom:0,left:0,right:0},duration:600})}nav.last=null;nav.ov=0;nav.fit=0;nav.zo=0;document.body.classList.remove("navon");try{gDraw();if(gst.length)gCalc()}catch(e){}$("nvo").classList.remove("on");$("sheet").hidden=false;$("fab").hidden=false;$("f4").hidden=$("f3").hidden=false;$("f3").textContent="3D";setSnap(snap,false);$("nv").hidden=true;$("mapc").classList.remove("fs");$("mx").hidden=false;$("mx").textContent="⤢";setTimeout(()=>gm&&gm.resize(),60);try{speechSynthesis.cancel()}catch(e){}}
 $("nvs").onclick=()=>nav.demo?stopTrafficDemo():stopNav();$("n3").onclick=()=>{nav.d3=!nav.d3;$("n3").textContent=nav.d3?"3D":"2D"};$("nvm").onclick=()=>{nav.mute=!nav.mute;$("nvm").textContent=nav.mute?"🔇":"🔊"};
 $("mx").onclick=()=>{const c=$("mapc").classList.toggle("fs");$("mx").textContent=c?"✕":"⤢";setTimeout(()=>gm&&gm.resize(),60)};
 paintNav();
@@ -1902,7 +1935,7 @@ async function navTraffic(force){
 }
 /* ---------- revenire în aplicație + reluare navigare ---------- */
 function saveNav(){
-  try{if(!nav.on||!nav.tgt)return;const m=M();localStorage.setItem("traseu_nav",JSON.stringify({ts:Date.now(),single:!!nav.single,mapId:m&&m.id,tgt:{lat:nav.tgt.lat,lon:nav.tgt.lon,name:nav.tgt.name||""}}))}catch(e){}
+  try{if(!nav.on||!nav.tgt)return;const m=M();localStorage.setItem("traseu_nav",JSON.stringify({ts:Date.now(),single:!!nav.single,mapId:m&&m.id,gq:(nav.gq||[]).map(x=>({lat:x.lat,lon:x.lon,name:x.name||""})),tgt:{lat:nav.tgt.lat,lon:nav.tgt.lon,name:nav.tgt.name||""}}))}catch(e){}
 }
 setInterval(()=>{if(nav.on)saveNav()},15000);
 let resumeT=0;
@@ -1932,7 +1965,7 @@ setTimeout(async()=>{
   toast("Reiau navigarea către "+(o.tgt.name||"destinație")+"… (Oprește ca să renunți)",6000);
   try{
     if(!o.single){await autoLoc();await compute();if(m.last&&m.last.route[1]){await startNav();return}}
-    await startNav(o.tgt);
+    await startNav(o.gq&&o.gq.length?{...o.tgt,gq:o.gq}:o.tgt);
   }catch(e){}
 },1500);
 async function liveCheck(){
@@ -2142,9 +2175,13 @@ function gRes(list,box){
   box.innerHTML="";
   list.forEach(d=>{
     const e=document.createElement("div");e.className="gi";
+    const x=document.createElement("div");x.className="gx";
     const b=document.createElement("b");b.textContent=d.name||"Fără nume";
-    const s=document.createElement("span");s.className="m";s.textContent=d.addr||"";
-    e.append(b,s);e.onclick=()=>setDest(d,{fly:true});box.append(e);
+    const sp=document.createElement("span");sp.className="m";sp.textContent=d.addr||"";
+    x.append(b,sp);
+    const a=document.createElement("button");a.className="ga";a.textContent="＋";a.setAttribute("aria-label","Adaugă în traseul GPS");
+    a.onclick=ev=>{ev.stopPropagation();if(gAdd(d)){toast("Adăugat în traseul GPS ("+gst.length+")",2500);paintGroute();gCalc(false)}else toast("Era deja în traseul GPS",2000)};
+    e.append(x,a);e.onclick=()=>setDest(d,{fly:true});box.append(e);
   });
 }
 async function gSearch(auto){
@@ -2181,6 +2218,123 @@ function addDest(){
 $("emg").onclick=()=>{ensureMap();sTab("gps");getLoc(true).then(ok=>{if(ok&&gm&&start)gm.easeTo({center:[start.lon,start.lat],zoom:14,duration:700})})};
 $("gsb").onclick=gSearch;
 $("gq").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();gSearch();try{$("gq").blur()}catch(x){}}});
+/* ---------- Traseu GPS: opriri proprii (adrese / puncte alese pe hartă / puncte selectate), separat de lista de puncte ---------- */
+let gst=[],gLast=null,gTok=0,gcT=0,gFit=false;
+try{gst=JSON.parse(localStorage.getItem("t2gstops")||"[]")}catch(e){gst=[]}
+function gsSave(){try{localStorage.setItem("t2gstops",JSON.stringify(gst))}catch(e){}}
+function gAdd(d){
+  if(gst.some(x=>hav(x,d)<8))return false;
+  gst.push({name:d.name||"Punct",addr:d.addr||"",lat:d.lat,lon:d.lon});gsSave();return true;
+}
+function selPts(){const o=[];maps.forEach(mm=>[...mm.sel].filter(i=>!mm.done.includes(i)&&mm.pts[i]).forEach(i=>{const p=mm.pts[i];o.push({name:p.name,addr:"📌 "+mm.name,lat:p.lat,lon:p.lon})}));return o}
+function gAddSel(){
+  let n=0;selPts().forEach(d=>{if(gAdd(d))n++});
+  toast(n?"Adăugate "+n+(n===1?" punct":" puncte")+" în traseul GPS":"Nu ai puncte selectate noi de adăugat.",4000);
+  paintGroute();if(n)gCalc(true);
+}
+function gMark(T){let ch=false;gst.forEach(x=>{if(!x.done&&hav(x,T)<40){x.done=1;ch=true}});if(ch){gsSave();paintGroute();gCalc(false)}}
+function gMove(i,d){const j=i+d;if(j<0||j>=gst.length)return;const t=gst[i];gst[i]=gst[j];gst[j]=t;gsSave();paintGroute();gCalc(false)}
+function gDel(i){gst.splice(i,1);gsSave();paintGroute();gCalc(false)}
+function gsum(t){const e=$("gts");if(e)e.textContent=t}
+function paintGroute(){
+  const has=gst.length>0,rem=gst.filter(x=>!x.done).length,box=$("gtl");
+  $("gte").hidden=has;$("gtn").textContent=has?(gst.length+(gst.length===1?" oprire":" opriri")):"";
+  $("gtgo").hidden=!rem;$("gtopt").hidden=rem<3;$("gtfit").hidden=!rem;$("gtrs").hidden=!has||rem===gst.length;$("gtclr").hidden=!has;
+  const n=selPts().length;$("gtsel").textContent="＋ Puncte selectate"+(n?" ("+n+")":"");
+  box.innerHTML="";
+  gst.forEach((d,i)=>{
+    const e=document.createElement("div");e.className="gr"+(d.done?" dn":"");
+    const nb=document.createElement("i");nb.textContent=d.done?"✓":String(i+1);
+    const t=document.createElement("div");t.className="gt";
+    const b=document.createElement("b");b.textContent=d.name||"Fără nume";
+    const sp=document.createElement("span");sp.className="m";sp.textContent=(d.addr&&d.addr!==d.name)?(d.addr.length>70?d.addr.slice(0,68)+"…":d.addr):"";
+    t.append(b,sp);t.onclick=()=>{if(gm)gm.easeTo({center:[d.lon,d.lat],zoom:Math.max(gm.getZoom(),14),duration:500})};
+    const mk=(tx,fn,lb)=>{const x=document.createElement("button");x.textContent=tx;x.setAttribute("aria-label",lb);x.onclick=fn;return x};
+    e.append(nb,t,mk("↑",()=>gMove(i,-1),"Mai sus"),mk("↓",()=>gMove(i,1),"Mai jos"),mk("✕",()=>gDel(i),"Șterge"));
+    box.append(e);
+  });
+  if(!has)gsum("");
+}
+function ensureGp(force){
+  if(!gm||(!gmReady&&!force)||gm.getSource("gp"))return !!(gm&&gm.getSource("gp"));
+  const lay=gm.getStyle().layers,ff=(lay.find(l=>l.type==="symbol"&&l.layout&&l.layout["text-font"])||{layout:{}}).layout["text-font"]||["Noto Sans Regular"];
+  gm.addSource("gp",{type:"geojson",data:EMPTY});gm.addSource("gps",{type:"geojson",data:EMPTY});
+  const before=gm.getLayer("me-a")?"me-a":undefined,L1={"line-join":"round","line-cap":"round"};
+  gm.addLayer({id:"me-gc",type:"line",source:"gp",layout:L1,paint:{"line-color":"#0e0a3a","line-opacity":.6,"line-width":routeW(4)}},before);
+  gm.addLayer({id:"me-gl",type:"line",source:"gp",layout:L1,paint:{"line-color":"#af52de","line-width":routeW(0)}},before);
+  gm.addLayer({id:"me-gs",type:"circle",source:"gps",paint:{"circle-radius":13,"circle-color":["case",["==",["get","d"],1],"#34c759","#af52de"],"circle-stroke-color":"#ffffff","circle-stroke-width":3}});
+  gm.addLayer({id:"me-gn",type:"symbol",source:"gps",layout:{"text-field":["get","n"],"text-font":ff,"text-size":13,"text-allow-overlap":true,"text-ignore-placement":true},paint:{"text-color":"#ffffff"}});
+  return true;
+}
+/* traseul GPS se vede doar în tab-ul GPS și nu în timpul navigării */
+function gDraw(){
+  if(!gm)return;
+  if(!gm.getSource("gp")&&!ensureGp())return;
+  const show=!nav.on&&$("sheet").classList.contains("tg");
+  gm.getSource("gp").setData(show&&gLast?LN(gLast.geo.map(c=>[c[1],c[0]])):EMPTY);
+  gm.getSource("gps").setData(show&&gst.length?FC(gst.map((d,i)=>pt([d.lon,d.lat],{n:String(i+1),d:d.done?1:0}))):EMPTY);
+}
+function gFitMap(){
+  if(!gm||!gLast)return;
+  const b=new maplibregl.LngLatBounds();gLast.geo.forEach(c=>b.extend([c[1],c[0]]));
+  gm.resize();gm.fitBounds(b,{padding:LS()?{top:50,bottom:50,left:Math.min(innerWidth*.44,400)+30,right:50}:{top:130,bottom:sheetPx()+40,left:36,right:36},maxZoom:16,duration:700,pitch:0,bearing:0});
+}
+function gSumPaint(){
+  const rem=gst.filter(x=>!x.done);
+  if(!rem.length){gsum(gst.length?"Toate opririle sunt terminate 🎉":"");return}
+  if(!gLast){gsum("");return}
+  const r=gLast;
+  gsum(rem.length+(rem.length===1?" oprire":" opriri")+" · "+km(r.dist)+(r.dur?" · "+mn(r.dur):"")+(r.delay>=120?" (+"+mn(r.delay)+" din trafic)":""));
+}
+function gCalc(fit){clearTimeout(gcT);if(fit)gFit=true;gcT=setTimeout(gRun,350)}
+async function gRun(){
+  if(nav.on)return;
+  const rem=gst.filter(x=>!x.done),t=++gTok;
+  if(!rem.length){gLast=null;gDraw();gSumPaint();return}
+  if(rem.length>98){gsum("Maximum 98 de opriri.");return}
+  if(!start){try{await getLoc(true)}catch(e){}}
+  if(t!==gTok)return;
+  if(!start){gsum("Setează locația ca să calculez traseul.");return}
+  gsum("Se calculează…");
+  try{
+    const res=await osrm(rem,false,true);
+    if(t!==gTok)return;
+    gLast=res;gDraw();gSumPaint();
+    if(gFit){gFit=false;gFitMap()}
+  }catch(e){if(t===gTok){gLast=null;gDraw();gsum("Traseul nu a putut fi calculat (verifică internetul).")}}
+}
+async function gOptimize(){
+  const rem=gst.filter(x=>!x.done);
+  if(rem.length<3){toast("Sunt necesare cel puțin 3 opriri.",3500);return}
+  if(!start){try{await getLoc(true)}catch(e){}}
+  if(!start){toast("Setează locația de start.",4000);return}
+  gsum("Se optimizează ordinea…");
+  try{
+    const res=await osrm(rem,false,false);
+    gst=[...gst.filter(x=>x.done),...res.route.slice(1)];gsSave();
+    gLast=res;paintGroute();gDraw();gSumPaint();gFitMap();
+  }catch(e){gSumPaint();toast("Nu am putut optimiza ordinea.",5000)}
+}
+async function gGo(){
+  const rem=gst.filter(x=>!x.done);
+  if(!rem.length){toast("Nu ai opriri în traseu.",3500);return}
+  ensureMap();manual=false;gpsOk=null;try{exitGps()}catch(e){}
+  const f=rem[0];
+  await startNav({lat:f.lat,lon:f.lon,name:f.name,gq:rem.slice(1).map(x=>({lat:x.lat,lon:x.lon,name:x.name}))});
+}
+$("gtgo").onclick=gGo;
+$("gtsel").onclick=gAddSel;
+$("gtopt").onclick=gOptimize;
+$("gtfit").onclick=()=>{if(gLast)gFitMap();else gCalc(true)};
+$("gtrs").onclick=()=>{gst.forEach(x=>{delete x.done});gsSave();paintGroute();gCalc(true)};
+$("gtclr").onclick=()=>{if(!confirm("Golești traseul GPS?"))return;gst=[];gLast=null;gsSave();paintGroute();gDraw()};
+$("dcg").onclick=()=>{
+  const d=dest;if(!d)return;
+  const ok=gAdd(d);exitGps();sTab("gps");paintGroute();
+  toast(ok?"Adăugat în traseul GPS ("+gst.length+")":"Era deja în traseul GPS",3000);
+  gCalc(ok);
+};
+paintGroute();
 let gdT=0;
 $("gq").addEventListener("input",()=>{clearTimeout(gdT);gdT=setTimeout(()=>gSearch(true),300)});
 $("gq").addEventListener("focus",()=>{if(!LS()&&snap!=="full")setSnap("full")});
@@ -2192,8 +2346,9 @@ $("gq").addEventListener("focus",()=>{if(!LS()&&snap!=="full")setSnap("full")});
 function sTab(t){
   const sh=$("sheet");sh.classList.toggle("tg",t==="gps");
   document.querySelectorAll("#stabs button").forEach(b=>b.classList.toggle("on",b.dataset.t===t));
-  if(t==="gps"){paintGps();if(snap==="peek")setSnap("half")}
+  if(t==="gps"){paintGps();paintGroute();if(snap==="peek")setSnap("half");if(gst.length&&!gLast)gCalc(false)}
   else{try{$("gq").blur()}catch(e){}}
+  try{gDraw()}catch(e){}
 }
 document.querySelectorAll("#stabs button").forEach(b=>b.onclick=()=>sTab(b.dataset.t));
 $("gpk").onclick=startPick;
