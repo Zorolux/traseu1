@@ -834,16 +834,61 @@ function ttHot(R){
 function ttSegs(R){
   try{
     const pts=[];(R.legs||[]).forEach((lg,k)=>(lg.points||[]).forEach((p,i)=>{if(k>0&&i===0)return;pts.push([p.longitude,p.latitude])}));
-    const out=[];
+    const pc=[0];for(let i=1;i<pts.length;i++)pc.push(pc[i-1]+hav({lat:pts[i-1][1],lon:pts[i-1][0]},{lat:pts[i][1],lon:pts[i][0]}));
+    const tot=pc[pc.length-1]||1,out=[];
     (R.sections||[]).forEach(x=>{
       if(x.sectionType!=="TRAFFIC")return;
       const dl=x.delayInSeconds||0,closed=x.simpleCategory==="ROAD_CLOSURE",mag=closed?4:(x.magnitudeOfDelay||(dl>0?1:0));
       if(!(mag>=2||dl>=10||closed))return;
       if(x.endPointIndex>=pts.length||x.endPointIndex<=x.startPointIndex)return;
-      out.push({co:pts.slice(x.startPointIndex,x.endPointIndex+1),c:TFC(mag),d:dl});
+      out.push({co:pts.slice(x.startPointIndex,x.endPointIndex+1),c:TFC(mag),d:dl,f0:pc[x.startPointIndex]/tot,f1:pc[x.endPointIndex]/tot});
     });
     return out;
   }catch(e){return[]}
+}
+/* Traficul se desenează pe EXACT aceeași linie ca traseul: poziția segmentului (început/sfârșit) se proiectează
+   pe linia afișată, apoi se decupează chiar din vârfurile acelei linii, cu aceleași curbe, fără geometria TomTom. */
+function geoCumLL(g){const c=[0];for(let i=1;i<g.length;i++)c.push(c[i-1]+hav({lat:g[i-1][0],lon:g[i-1][1]},{lat:g[i][0],lon:g[i][1]}));return c}
+function projWin(p,g,cum,s0,s1){
+  const k=Math.cos(p.lat*Math.PI/180);let best=null,lo=0,hi=cum.length-1;
+  while(hi-lo>1){const m=(lo+hi)>>1;if(cum[m]<=s0)lo=m;else hi=m}
+  for(let i=lo;i<g.length-1&&cum[i]<=s1;i++){
+    const a=g[i],b=g[i+1],ax=(a[1]-p.lon)*k,ay=a[0]-p.lat,bx=(b[1]-p.lon)*k,by=b[0]-p.lat,dx=bx-ax,dy=by-ay,l=dx*dx+dy*dy;
+    let t=l?-(ax*dx+ay*dy)/l:0;t=Math.max(0,Math.min(1,t));
+    const x=ax+t*dx,y=ay+t*dy,d=Math.sqrt(x*x+y*y)*111320;
+    if(!best||d<best.d)best={d,s:cum[i]+t*(cum[i+1]-cum[i])};
+  }
+  return best;
+}
+function tfOnGeo(segs,g,sB){
+  if(!segs||!segs.length||!g||g.length<2)return[];
+  sB=sB||0;const cum=geoCumLL(g),L=cum[cum.length-1],win=Math.max(400,L*.06),out=[];let prev=sB;
+  segs.forEach(x=>{
+    const p0=x.co[0],p1=x.co[x.co.length-1],e0=sB+x.f0*(L-sB),e1=sB+x.f1*(L-sB);
+    const a=projWin({lat:p0[1],lon:p0[0]},g,cum,Math.max(prev-30,e0-win),e0+win),b=projWin({lat:p1[1],lon:p1[0]},g,cum,Math.max(prev-30,e1-win),e1+win);
+    if(!a||!b||a.d>60||b.d>60)return;
+    const s=Math.min(a.s,b.s),e=Math.max(a.s,b.s);if(e-s<8)return;
+    out.push({s,e,c:x.c,d:x.d});prev=e;
+  });
+  return out;
+}
+function sliceLL(g,cum,s,e){
+  const at=d=>{
+    let lo=0,hi=cum.length-1;
+    if(d<=0)return{i:0,ll:[g[0][1],g[0][0]]};
+    if(d>=cum[hi])return{i:hi-1,ll:[g[hi][1],g[hi][0]]};
+    while(hi-lo>1){const m=(lo+hi)>>1;if(cum[m]<=d)lo=m;else hi=m}
+    const t=(d-cum[lo])/Math.max(.01,cum[hi]-cum[lo]),a=g[lo],b=g[hi];
+    return{i:lo,ll:[a[1]+(b[1]-a[1])*t,a[0]+(b[0]-a[0])*t]};
+  };
+  const A=at(s),B=at(e),co=[A.ll];
+  for(let i=A.i+1;i<=B.i;i++)co.push([g[i][1],g[i][0]]);
+  co.push(B.ll);return co;
+}
+function tfPlanFrom(r){
+  if(!r||!r.tf||!r.tf.length||!r.geo||r.geo.length<2||r.tf[0].co)return EMPTY;
+  const cum=geoCumLL(r.geo);
+  return FC(r.tf.map(x=>LN(sliceLL(r.geo,cum,x.s,x.e),{c:x.c})));
 }
 const reasonGen=c=>c==="ROAD_WORK"?"lucrărilor":c==="ROAD_CLOSURE"?"unui drum închis":c==="JAM"?"aglomerației":"traficului";
 async function osrmMatrix(all){
@@ -870,7 +915,7 @@ async function osrm(list,rt){
         if(!ttBad(rr)&&rr.ok){const jj=await rr.json(),R=jj.routes&&jj.routes[0];if(R&&R.summary){s0={dur:R.summary.travelTimeInSeconds,delay:R.summary.trafficDelayInSeconds||0,legs:(R.legs||[]).map(l=>l.summary.travelTimeInSeconds),legD:(R.legs||[]).map(l=>l.summary.trafficDelayInSeconds||0),hot:ttHot(R),tf:ttSegs(R)};ttCache.set(k,{t:Date.now(),v:s0})}}
       }catch(e){}
     }
-    if(s0){res.dur=s0.dur;res.delay=s0.delay;res.live=true;res.hot=s0.hot||null;res.tf=s0.tf||null;if(s0.legs.length===res.legs.length)res.legs=res.legs.map((l,i)=>({...l,duration:s0.legs[i],delay:(s0.legD||[])[i]||0}))}
+    if(s0){res.dur=s0.dur;res.delay=s0.delay;res.live=true;res.hot=s0.hot||null;res.tf=s0.tf?tfOnGeo(s0.tf,res.geo,0):null;if(s0.legs.length===res.legs.length)res.legs=res.legs.map((l,i)=>({...l,duration:s0.legs[i],delay:(s0.legD||[])[i]||0}))}
   }
   return res;
 }
@@ -928,7 +973,25 @@ function showRoute(m,r){
 }
 
 /* ---------- hartă, navigare, progres ---------- */
-const simp=c=>{const k=Math.ceil(c.length/1800);return c.filter((_,i)=>i%k===0||i===c.length-1).map(x=>[x[1],x[0]])};
+function dpSimp(c,tol){
+  const n=c.length;if(n<3)return c.map(x=>[x[1],x[0]]);
+  const ky=111320,kx=Math.cos(c[0][1]*Math.PI/180)*ky,X=new Float64Array(n),Y=new Float64Array(n);
+  for(let i=0;i<n;i++){X[i]=c[i][0]*kx;Y[i]=c[i][1]*ky}
+  const keep=new Uint8Array(n);keep[0]=keep[n-1]=1;const st=[[0,n-1]];
+  while(st.length){
+    const[a,b]=st.pop();if(b<=a+1)continue;
+    const ax=X[a],ay=Y[a],dx=X[b]-ax,dy=Y[b]-ay,L2=dx*dx+dy*dy;let md=-1,mi=-1;
+    for(let i=a+1;i<b;i++){
+      let d;
+      if(L2===0)d=Math.hypot(X[i]-ax,Y[i]-ay);
+      else{let t=((X[i]-ax)*dx+(Y[i]-ay)*dy)/L2;t=Math.max(0,Math.min(1,t));d=Math.hypot(X[i]-(ax+t*dx),Y[i]-(ay+t*dy))}
+      if(d>md){md=d;mi=i}
+    }
+    if(md>tol){keep[mi]=1;st.push([a,mi],[mi,b])}
+  }
+  const o=[];for(let i=0;i<n;i++)if(keep[i])o.push([c[i][1],c[i][0]]);return o;
+}
+const simp=c=>{let t=.6,o=dpSimp(c,t);while(o.length>6000&&t<24){t*=2;o=dpSimp(c,t)}return o};
 let navApp="google";try{navApp=localStorage.getItem("traseu_nav")||"google"}catch(e){}
 function navUrl(p){const ll=p.lat+","+p.lon;return navApp==="waze"?"https://waze.com/ul?ll="+ll+"&navigate=yes":navApp==="apple"?"https://maps.apple.com/?dirflg=d&daddr="+ll:"https://www.google.com/maps/dir/?api=1&travelmode=driving&destination="+ll}
 function paintNav(){document.querySelectorAll("#navp .pill").forEach(b=>b.classList.toggle("on",b.dataset.n===navApp))}
@@ -957,19 +1020,28 @@ let tfPlan=EMPTY;
 const TFC=m=>m>=4?"#7a0a14":m>=3?"#e5262b":m>=2?"#ff8a00":"#ffc02e";
 function sliceRoute(d0,d1){const a=ptAt(d0),b=ptAt(d1),co=[[a.lon,a.lat]];for(let i=a.i+1;i<=b.i;i++)co.push(nav.ll[i]);co.push([b.lon,b.lat]);return co}
 function navTfData(){
-  if(!nav.tf||!nav.tf.length||!nav.cum)return EMPTY;
+  if(!nav.tfs||!nav.tfs.length||!nav.cum)return EMPTY;
   const dp=nav.dpS||0;
-  return FC(nav.tf.filter(x=>x.e>dp+5).map(x=>LN(sliceRoute(Math.max(x.s,dp),x.e),{c:x.c})));
+  return FC(nav.tfs.filter(x=>x.e>dp+5).map(x=>LN(sliceRoute(Math.max(x.s,dp),x.e),{c:x.c})));
 }
 function tfNow(){return cfg.tr==="0"?EMPTY:(typeof nav!=="undefined"&&nav.on)?navTfData():tfPlan}
-function applyTf(){try{if(!gm||!gmReady)return;const s=gm.getSource("tf");if(s)s.setData(tfNow())}catch(e){}}
+function applyTf(){try{if(!gm||!gmReady)return;const s=gm.getSource("tf");if(s)s.setData(tfNow())}catch(e){}try{flowVis()}catch(e){}}
+/* traficul stilului TomTom se desenează pe axa șoselei, în ambele sensuri, deci nu se suprapune cu linia traseului (care e pe banda de mers).
+   Cât există un traseu, traficul se vede doar pe linia traseului (banda mea, aceleași vârfuri și curbe); fără traseu rămâne cel al stilului. */
+function flowVis(){
+  if(!gm||!gmReady)return;
+  const r0=lastDraw&&lastDraw[1],on=(typeof nav!=="undefined"&&nav.on&&nav.geo.length>0)||!!(r0&&r0.geo&&r0.geo.length>1);
+  const hide=cfg.tr==="0"||(on&&!!ttKey&&!ttOff);
+  flowLayerIds().forEach(id=>{try{gm.setLayoutProperty(id,"visibility",hide?"none":"visible")}catch(e){}});
+}
 const alongD=p=>{const q=snapTo(p,nav.geo);return q?nav.cum[q.i]+hav({lat:q.a[0],lon:q.a[1]},{lat:q.lat,lon:q.lon}):0};
-async function navTraffic(a,b,gen){
-  if(!ttKey||ttOff||!b)return;
+async function navSegs(a,b,gen){
+  if(!ttKey||ttOff||!b||!nav.geo.length)return;
   try{
     const rr=await ttRoute([a,b],true);if(ttBad(rr)||!rr.ok)return;
     const j=await rr.json(),R=j.routes&&j.routes[0];if(!R||gen!==nav.tfGen||!nav.geo.length)return;
-    nav.tf=ttSegs(R).map(x=>{const p0=x.co[0],p1=x.co[x.co.length-1],s0=alongD({lat:p0[1],lon:p0[0]}),e0=alongD({lat:p1[1],lon:p1[0]});return{s:Math.min(s0,e0),e:Math.max(s0,e0),c:x.c}}).filter(x=>x.e-x.s>8);
+    const sB=Math.max(0,Math.min(nav.L,nav.free?alongD(a):nav.s));
+    nav.tfs=tfOnGeo(ttSegs(R),nav.geo,sB).map(x=>({s:x.s,e:x.e,c:x.c}));
     applyTf();
   }catch(e){}
 }
@@ -1150,7 +1222,7 @@ function initMap(){
       const lay=gm.getStyle().layers,ff=(lay.find(l=>l.type==="symbol"&&l.layout&&l.layout["text-font"])||{layout:{}}).layout["text-font"]||["Noto Sans Regular"];
       ["rt","nrt","ndone","tf","sel","stops","me"].forEach(id=>gm.addSource(id,{type:"geojson",data:EMPTY}));gm.addSource("pts",{type:"geojson",data:EMPTY,cluster:true,clusterRadius:42,clusterMaxZoom:13});
       lineLayers("rt","#007aff");lineLayers("ndone","#8e8e93");lineLayers("nrt","#007aff");gm.addLayer({id:"tf-l",type:"line",source:"tf",layout:{"line-join":"round","line-cap":"butt"},paint:{"line-color":["get","c"],"line-width":routeW(0)}});try{gm.getSource("tf").setData(tfNow())}catch(e){}
-      try{["rt-c","rt-l","nrt-c","nrt-l","ndone-c","ndone-l","tf-l"].forEach(id=>gm.setPaintProperty(id,"line-offset",stopsExpr(LP,v=>v)))}catch(e){}
+      try{["rt-c","rt-l","nrt-c","nrt-l","ndone-c","ndone-l","tf-l"].forEach(id=>gm.setPaintProperty(id,"line-offset",laneStops(laneLat=gm.getCenter().lat)))}catch(e){}
       gm.addLayer({id:"me-a",type:"circle",source:"me",paint:{"circle-color":"#007aff","circle-opacity":.14,"circle-radius":["interpolate",["exponential",2],["zoom"],0,["get","k0"],22,["*",["get","k0"],4194304]]}});
       const NC=["!",["has","point_count"]];
       gm.addLayer({id:"cl-c",type:"circle",source:"pts",filter:["has","point_count"],paint:{"circle-color":"#8e8e93","circle-opacity":.92,"circle-radius":["step",["get","point_count"],16,10,20,50,25],"circle-stroke-color":"#ffffff","circle-stroke-width":2.5}});
@@ -1199,7 +1271,8 @@ function drawMap0(m,r){
   maps.forEach(mm=>{if(mm!==m)mm.pts.forEach((p,i)=>{const sl=mm.sel.has(i),dn=mm.done.includes(i);if(sl||dn)se.push(pt([p.lon,p.lat],{i:-1,n:p.name,d:dn?1:0}))})});
   gm.getSource("pts").setData(FC(un));gm.getSource("sel").setData(FC(se));
   gm.getSource("rt").setData(r?LN((r.geo||r.route.map(p=>[p.lat,p.lon])).map(c=>[c[1],c[0]])):EMPTY);
-  tfPlan=r&&r.tf?FC(r.tf.map(x=>LN(x.co,{c:x.c}))):EMPTY;applyTf();
+  try{if(r){const g0=r.geo||r.route.map(p=>[p.lat,p.lon]);applyLane(g0[g0.length>>1][0])}}catch(e){}
+  tfPlan=tfPlanFrom(r);applyTf();
   gm.getSource("stops").setData(FC(r?r.route.map((p,i)=>({p,i})).filter(o=>o.i>0&&!(start&&o.p.lat===start.lat&&o.p.lon===start.lon)).map(o=>pt([o.p.lon,o.p.lat],{n:String(o.i)})):[]));
   paintMe();
   if(nav.on)return;
@@ -1287,7 +1360,7 @@ async function navLeg(a,hg){
   nav.geo=R.geometry.coordinates.map(c=>[c[1],c[0]]);nav.steps=R.legs[0].steps;nav.si=nav.steps.length>1?1:0;nav.said={};nav.off=0;nav.wrong=0;nav.t=Date.now();prepRoute();
   if(nav.dp){const q2=snapTo(nav.dp,nav.geo);if(q2&&q2.d<80){nav.s=nav.sf=nav.cum[q2.i]+hav({lat:q2.a[0],lon:q2.a[1]},{lat:q2.lat,lon:q2.lon})}}
   if(gm&&gmReady){nav.pi=-1;gm.getSource("nrt").setData(rtData());gm.getSource("ndone").setData(EMPTY)}
-  nav.tf=[];nav.tfGen=(nav.tfGen||0)+1;nav._tft=Date.now();nav.dpS=0;applyTf();navTraffic(a,b,nav.tfGen);
+  nav.tfs=[];nav.tfGen=(nav.tfGen||0)+1;nav._tft=Date.now();nav.dpS=0;applyTf();navSegs(a,b,nav.tfGen);
 }
 function prepRoute(){
   const g=nav.geo,c=[0];nav.ll=g.map(x=>[x[1],x[0]]);for(let i=1;i<g.length;i++)c.push(c[i-1]+hav({lat:g[i-1][0],lon:g[i-1][1]},{lat:g[i][0],lon:g[i][1]}));
@@ -1414,12 +1487,13 @@ function snapTo(p,geo,lo,hi){
 }
 function showProg(a){
   if(!gm||!gmReady||!nav.ll)return;
+  applyLane(a.lat);
   const e=ptAt(Math.min(nav.L,(nav.cum[a.i]||0)+3500)).i+2;
   gm.getSource("nrt").setData(LN([[a.lon,a.lat],...nav.ll.slice(a.i+1,e)]));
   try{
     const vi=nav.ll[a.i];nav.dpS=nav.cum[a.i]+hav({lat:vi[1],lon:vi[0]},a);
     const kk=Math.floor(nav.dpS/20);if(kk!==nav._tfk){nav._tfk=kk;applyTf()}
-    if(ttKey&&!ttOff&&nav.tgt&&Date.now()-(nav._tft||0)>240000){nav._tft=Date.now();navTraffic({lat:a.lat,lon:a.lon},nav.tgt,nav.tfGen=(nav.tfGen||0)+1)}
+    if(ttKey&&!ttOff&&nav.tgt&&Date.now()-(nav._tft||0)>240000){nav._tft=Date.now();navSegs({lat:a.lat,lon:a.lon},nav.tgt,nav.tfGen=(nav.tfGen||0)+1)}
   }catch(x){}
 }
 const angLerp=(a,b,t)=>(a+(((b-a+540)%360)-180)*t+360)%360;
@@ -1514,7 +1588,7 @@ async function onPos(pos){
   }
 }
 function stopNav(){try{localStorage.removeItem("traseu_nav")}catch(e){}try{hideDly()}catch(e){}nav.single=false;nav.on=0;nav.busy=0;if(nav.w!=null)navigator.geolocation.clearWatch(nav.w);nav.w=null;try{nav.wl&&nav.wl.release()}catch(e){}
-  cancelAnimationFrame(nav.raf);cancelAnimationFrame(nav.raf2);clearTimeout(nav.ovt);$("lim").hidden=true;$("spd").classList.remove("over");if(mk3){mk3.remove();mk3=null}if(mkT){mkT.remove();mkT=null}nav.tgtM=null;m3=null;if(gm&&gmReady){gm.getSource("nrt").setData(EMPTY);gm.getSource("ndone").setData(EMPTY);["rt-c","rt-l"].forEach(id=>{try{gm.setLayoutProperty(id,"visibility","visible")}catch(e){}});nav.tf=[];applyTf();gm.easeTo({pitch:0,bearing:0,padding:{top:0,bottom:0,left:0,right:0},duration:600})}nav.last=null;nav.ov=0;nav.fit=0;nav.zo=0;document.body.classList.remove("navon");$("nvo").classList.remove("on");$("sheet").hidden=false;$("fab").hidden=false;$("f4").hidden=$("f3").hidden=false;$("f3").textContent="3D";setSnap(snap,false);$("nv").hidden=true;$("mapc").classList.remove("fs");$("mx").hidden=false;$("mx").textContent="⤢";setTimeout(()=>gm&&gm.resize(),60);try{speechSynthesis.cancel()}catch(e){}}
+  cancelAnimationFrame(nav.raf);cancelAnimationFrame(nav.raf2);clearTimeout(nav.ovt);$("lim").hidden=true;$("spd").classList.remove("over");if(mk3){mk3.remove();mk3=null}if(mkT){mkT.remove();mkT=null}nav.tgtM=null;m3=null;if(gm&&gmReady){gm.getSource("nrt").setData(EMPTY);gm.getSource("ndone").setData(EMPTY);["rt-c","rt-l"].forEach(id=>{try{gm.setLayoutProperty(id,"visibility","visible")}catch(e){}});nav.tfs=[];applyTf();gm.easeTo({pitch:0,bearing:0,padding:{top:0,bottom:0,left:0,right:0},duration:600})}nav.last=null;nav.ov=0;nav.fit=0;nav.zo=0;document.body.classList.remove("navon");$("nvo").classList.remove("on");$("sheet").hidden=false;$("fab").hidden=false;$("f4").hidden=$("f3").hidden=false;$("f3").textContent="3D";setSnap(snap,false);$("nv").hidden=true;$("mapc").classList.remove("fs");$("mx").hidden=false;$("mx").textContent="⤢";setTimeout(()=>gm&&gm.resize(),60);try{speechSynthesis.cancel()}catch(e){}}
 $("nvs").onclick=()=>nav.demo?stopTrafficDemo():stopNav();$("n3").onclick=()=>{nav.d3=!nav.d3;$("n3").textContent=nav.d3?"3D":"2D"};$("nvm").onclick=()=>{nav.mute=!nav.mute;$("nvm").textContent=nav.mute?"🔇":"🔊"};
 $("mx").onclick=()=>{const c=$("mapc").classList.toggle("fs");$("mx").textContent=c?"✕":"⤢";setTimeout(()=>gm&&gm.resize(),60)};
 paintNav();
@@ -1643,8 +1717,21 @@ function lanePx(z){
 /* poziția mașinii, mutată pe banda din dreapta (aceiași pixeli ca la linia traseului) */
 function laneShift(p){
   if(!gm)return p;
-  const z=gm.getZoom(),mpp=78271.5*Math.cos(p.lat*Math.PI/180)/Math.pow(2,z);
-  return mvp(p,(hd+90)%360,lanePx(z)*mpp);
+  return mvp(p,(hd+90)%360,LANE_M);
+}
+/* decalajul benzii = LANE_M metri la dreapta, convertit în pixeli exact la fiecare zoom și la latitudinea traseului;
+   același decalaj pentru linia traseului, pentru banda de trafic și pentru mașină */
+const LANE_M=1.8;let laneLat=null;
+function laneStops(lat){
+  const K=LANE_M/(78271.517*Math.cos(lat*Math.PI/180)),e=["interpolate",["exponential",2],["zoom"]];
+  [8,10,12,13,14,15,16,17,18,19,20,21,22].forEach(z=>e.push(z,+(K*Math.pow(2,z)).toFixed(4)));
+  return e;
+}
+function applyLane(lat){
+  if(!gm||!gmReady||!isFinite(lat))return;
+  if(laneLat!=null&&Math.abs(lat-laneLat)<.25)return;
+  laneLat=lat;const e=laneStops(lat);
+  ["rt-c","rt-l","nrt-c","nrt-l","ndone-c","ndone-l","tf-l"].forEach(id=>{try{gm.setPaintProperty(id,"line-offset",e)}catch(x){}});
 }
 const isFlowLayer=l=>l.type==="line"&&!/^tt-/.test(l.id)&&(/flow/i.test(l.id)||/flow/i.test(l["source-layer"]||""));
 function flowLayerIds(){try{return gm.getStyle().layers.filter(isFlowLayer).map(l=>l.id)}catch(e){return[]}}
@@ -1858,7 +1945,7 @@ async function liveCheck(){
     if(ttBad(rr)||!rr.ok)return;
     const jj=await rr.json(),R=jj.routes&&jj.routes[0];
     if(!R||!R.summary||!R.legs||R.legs.length!==r.legs.length||M()!==m||m.last!==r)return;
-    r.dur=R.summary.travelTimeInSeconds;r.delay=R.summary.trafficDelayInSeconds||0;r.hot=ttHot(R);
+    r.dur=R.summary.travelTimeInSeconds;r.delay=R.summary.trafficDelayInSeconds||0;r.hot=ttHot(R);try{r.tf=tfOnGeo(ttSegs(R),r.geo,0);tfPlan=tfPlanFrom(r);applyTf()}catch(e){}
     r.legs=r.legs.map((l,i)=>({...l,duration:R.legs[i].summary.travelTimeInSeconds,delay:R.legs[i].summary.trafficDelayInSeconds||0}));
     save();paintLive(r);delayWatch(r);
   }catch(e){}finally{lcBusy=false;lcAt=Date.now()}
